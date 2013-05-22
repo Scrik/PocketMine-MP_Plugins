@@ -19,7 +19,8 @@ class SignAPI implements Plugin{
 	public function __destruct(){}
 	
 	public function init(){
-		$this->api->handle("plugin.sign.api", new Command($this->api));
+		$api = new Command($this->api);
+		$this->api->handle("plugin.sign.api", $api);
 	}
 }
 
@@ -113,7 +114,7 @@ class Command{
 				$this->run($this->alias[$cmd]." ".implode(" ", $params), $issuer, $cmd);
 				return;
 			}
-			console("[CMD API] \x1b[33m".$issuer->__get("username")."\x1b[0m issued server command: ".ltrim("$alias ")."/$cmd ".implode(" ", $params));
+			console("[SignAPI] \x1b[33m".$issuer->__get("username")."\x1b[0m issued server command: ".ltrim("$alias ")."/$cmd ".implode(" ", $params));
 			if(isset($this->cmds[$cmd]) and is_callable($this->cmds[$cmd])){
 				if($this->api->dhandle("api.cmd.command", array("cmd" => $cmd, "parameters" => $params, "issuer" => $issuer, "alias" => $alias)) === false){
 					$output = "You don't have permission to use this command.\n";

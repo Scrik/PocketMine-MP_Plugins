@@ -8,12 +8,13 @@ groups:
       - list
       - spawn
       - lag
+      - register
       - logout
       - login
     info:
       prefix: '[Newbie] '
-      build: false
-      suffix: ' '
+      build: true
+      suffix: ''
   People:
     default: false
     permissions:
@@ -28,12 +29,13 @@ groups:
       - spawn
       - lag
       - tell
+      - register
       - logout
       - login
     info:
       prefix: '[People] '
       build: true
-      suffix: ' '
+      suffix: ''
   Moderator:
     default: false
     permissions:
@@ -64,13 +66,14 @@ groups:
       - give
       - tell
       - me
+      - register
       - logout
       - login
       - password
     info:
       prefix: '[Moderator] '
       build: true
-      suffix: ' '
+      suffix: ''
   Admin:
     default: false
     permissions:
@@ -110,6 +113,7 @@ groups:
       - give
       - tell
       - me
+      - register
       - logout
       - login
       - password
@@ -124,4 +128,4 @@ groups:
     info:
       prefix: '[Admin] '
       build: true
-      suffix: ' '
+      suffix: ''

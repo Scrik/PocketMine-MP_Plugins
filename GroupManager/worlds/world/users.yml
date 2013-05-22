@@ -1,8 +1,5 @@
 ---
 users:
-  Jejo:
-    group: Admin
-    permissions: [ ]
-  GaLaXy:
+  Notch:
     group: Admin
     permissions: [ ]

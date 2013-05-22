@@ -170,6 +170,9 @@ class Protect{
 	}
 	
 	public function onBreak(&$output, $player){
+		if($this->protected === false){
+			$this->__destruct();
+		}
 		if($this->check($output, $player->__get("iusername"))){
 			$this->__destruct();
 		}else{

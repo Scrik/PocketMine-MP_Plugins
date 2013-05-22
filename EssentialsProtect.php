@@ -14,7 +14,7 @@ apiversion=7
 Small Changelog
 ===============
 
-0.1:
+1.0:
 - Release
 
 */
@@ -40,8 +40,12 @@ class EssentialsProtect implements Plugin{
 			console("Stopping the server");
 			$this->api->console->defaultCommands("stop", array(), "plugin", false);
 		}
-		$this->api->event("server.close", array($this, "handler"));
+		$this->config = $this->api->plugin->readYAML("./plugins/Essentials/config.yml");
+		if(file_exists("./plugins/Essentials/Protectdata.dat")){
+			$this->protect = unserialize(file_get_contents("./plugins/Essentials/Protectdata.dat"));
+		}
 		
+		$this->api->event("server.close", array($this, "handler"));
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("tile.update", array($this, "handler"), 7);
 		$this->api->addHandler("player.flying", array($this, "handler"), 7);
@@ -50,18 +54,13 @@ class EssentialsProtect implements Plugin{
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.activate", array($this, "handler"), 7);
 		
-		if(file_exists("./plugins/Essentials/Protectdata.dat")){ // 저장
-			$this->protect = unserialize(file_get_contents("./plugins/Essentials/Protectdata.dat"));
-		}
-		
 		$this->api->sign->register("blundo", "<player>", array($this, "defaultCommands"));
-		$this->config = $this->api->plugin->readYAML("./plugins/Essentials/config.yml");
 	}
 	
 	public function handler(&$data, $event){
 		switch($event){
 			case "server.close":
-				//file_put_contents("./plugins/Essentials/Protectdata.dat", serialize($this->save)); // 저장
+				//file_put_contents("./plugins/Essentials/Protectdata.dat", serialize($this->save));
 				break;
 			case "entity.explosion":
 				if($this->config["allow-explosion"] === false){

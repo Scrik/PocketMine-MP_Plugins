@@ -14,7 +14,7 @@ apiversion=7
 Small Changelog
 ===============
 
-0.1:
+1.0:
 - Release
 
 */
@@ -28,8 +28,9 @@ class Essentials implements Plugin{
 	public function __destruct(){}
 	
 	public function init(){
-		$this->api->event("server.close", array($this, "handler"));
+		$this->createConfig();
 		
+		$this->api->event("server.close", array($this, "handler"));
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("player.quit", array($this, "handler"), 5);
 		$this->api->addHandler("player.flying", array($this, "handler"), 5);
@@ -50,18 +51,15 @@ class Essentials implements Plugin{
 		$this->api->sign->register("back", "", array($this, "defaultCommands"));
 		$this->api->sign->register("tree", "<tree|brich|redwood>", array($this, "defaultCommands"));
 		$this->api->sign->register("clear", "", array($this, "defaultCommands"));
-		// ConsoleAPI
 		$this->api->sign->register("stop", "", array($this, "defaultCommands"));
 		$this->api->sign->register("status", "", array($this, "defaultCommands"));
 		$this->api->sign->register("invisible", "<on | off>", array($this, "defaultCommands"));
 		$this->api->sign->register("difficulty", "<0|1|2>", array($this, "defaultCommands"));
 		$this->api->sign->register("defaultgamemode", "<mode>", array($this, "defaultCommands"));
-		// LevelAPI
 		$this->api->sign->register("seed", "[world]", array($this, "defaultCommands"));
 		$this->api->sign->register("save-all", "", array($this, "defaultCommands"));
 		$this->api->sign->register("save-on", "", array($this, "defaultCommands"));
 		$this->api->sign->register("save-off", "", array($this, "defaultCommands"));
-		// PlayerAPI
 		$this->api->sign->register("list", "", array($this, "defaultCommands"));
 		$this->api->sign->register("kill", "<player>", array($this, "defaultCommands"));
 		$this->api->sign->register("gamemode", "<mode> [player]", array($this, "defaultCommands"));
@@ -69,9 +67,7 @@ class Essentials implements Plugin{
 		$this->api->sign->register("spawnpoint", "[player] [x] [y] [z]", array($this, "defaultCommands"));
 		$this->api->sign->register("spawn", "", array($this, "defaultCommands"));
 		$this->api->sign->register("lag", "", array($this, "defaultCommands"));
-		// TimeAPI
 		$this->api->sign->register("time", "<check|set|add> [time]", array($this, "defaultCommands"));
-		// BanAPI
 		$this->api->sign->register("banip", "<add|remove|list|reload> [IP|player]", array($this, "defaultCommands"));
 		$this->api->sign->register("ban", "<add|remove|list|reload> [username]", array($this, "defaultCommands"));
 		$this->api->sign->register("kick", "<player> [reason ...]", array($this, "defaultCommands"));
@@ -79,12 +75,176 @@ class Essentials implements Plugin{
 		$this->api->sign->register("op", "<player>", array($this, "defaultCommands"));
 		$this->api->sign->register("deop", "<player>", array($this, "defaultCommands"));
 		$this->api->sign->register("sudo", "<player>", array($this, "defaultCommands"));
-		// BlockAPI
 		$this->api->sign->register("give", "<player> <item[:damage]> [amount]", array($this, "defaultCommands"));
-		// ChatAPI
 		$this->api->sign->register("tell", "<player> <private message ...>", array($this, "defaultCommands"));
 		$this->api->sign->register("me", "<action ...>", array($this, "defaultCommands"));
-		
+	}
+	
+	public function handler(&$data, $event){
+		switch($event){
+			case "player.join":
+				break;
+			case "player.move":
+				$player = $this->api->player->getByEID($data->eid);
+				if($player->__get("lastMovement") < 10){
+					$this->initPlayer($player);
+				}
+				break;
+			case "player.flying":
+				if($this->api->ban->isOp($data->__get("iusername")) === true){
+					return true;
+				}
+				break;
+			case "player.block.break":
+				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
+					$t = $this->api->tileentity->get($data["target"]);
+					foreach($t as $ts){
+						if($ts->class === TILE_SIGN){
+							$this->api->tileentity->remove($ts->id);
+						}
+					}
+				}
+				break;
+			case "player.block.place.spawn":
+				if($data["item"]->getID() === SIGN){
+					return true;
+				}
+				break;
+			case "player.block.break.spawn":
+				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
+					return true;
+				}
+				break;
+		}
+	}
+	
+	public function initPlayer($player){
+		if($player->gamemode === CREATIVE){
+			foreach($player->inventory as $slot => $item){
+				if($this->api->ban->isOp($player->__get("iusername"))){
+					$player->setSlot($slot, BlockAPI::fromString($this->config["creative-item-op"][$slot]));
+				}else{
+					$player->setSlot($slot, BlockAPI::fromString($this->config["creative-item"][$slot]));
+				}
+			}
+		}
+	}
+	
+	public function getGM($name){
+		$gm["users"] = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/users.yml", CONFIG_YAML);
+		$gm["groups"] = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/groups.yml", CONFIG_YAML);
+		foreach($gm["groups"]->get("groups") as $groupname => $group){
+			if($group["default"] === true){
+				$defaultgroup = $groupname;
+				break;
+			}
+		}
+		if(isset($gm["users"]->get("users")[$name])){
+			$gm["users"] = $gm["users"]->get("users")[$name];
+			$gm["groups"] = $gm["groups"]->get("groups")[$gm["users"]["group"]];
+		}else{
+			$gm["users"] = array(
+				"group" => $defaultgroup,
+				"permissions" => array(),
+			);
+			$gm["groups"] = $gm["groups"]->get("groups")[$defaultgroup];
+		}
+		return $gm;
+	}
+	
+	public function defaultCommands($cmd, $params, $issuer, $alias){
+		$output = "";
+		switch($cmd){
+			case "?":
+			case "help":
+				$output = $this->api->sign->getHelp($params, $issuer);
+				break;
+			case "say":
+				$s = implode(" ", $params);
+				if(trim($s) == ""){
+					$output .= "Usage: /say <message ...>\n";
+					break;
+				}
+				$gm = $this->getGM($issuer->__get("username"));
+				$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($gm["groups"]["info"]["prefix"].$issuer->__get("username").$gm["groups"]["info"]["suffix"], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
+				break;
+			case "home":
+				break;
+			case "sethome":
+				break;
+			case "delhome":
+				break;
+			case "mute":
+				break;
+			case "back":
+				break;
+			case "tree":
+				switch(strtolower($params[0])){
+					case "redwood":
+						$meta = 1;
+						$output .= "Redwood tree spawned.";
+						break;
+					case "brich":
+						$meta = 2;
+						$output .= "Brich tree spawned.";
+						break;
+					case "tree":
+						$meta = 0;
+						$output .= "Tree spawned.";
+						break;
+					default:
+						$output .= "Usage: /tree <tree|brich|redwood>";
+						break 2;
+				}
+				TreeObject::growTree($issuer->level, new Vector3 ((int)$issuer->entity->x, (int)$issuer->entity->y, (int)$issuer->entity->z), $meta);
+				break;
+			case "clear":
+			case "stop":
+			case "status":
+			case "invisible":
+			case "difficulty":
+			case "defaultgamemode":
+				$output = $this->api->console->defaultCommands($cmd, $params, $issuer, false);
+				break;
+			case "seed":
+			case "save-all":
+			case "save-on":
+			case "save-off":
+				$output = $this->api->level->commandHandler($cmd, $params, $issuer, false);
+				break;
+			case "list":
+			case "kill":
+			case "gamemode":
+			case "tp":
+			case "spawnpoint":
+			case "spawn":
+			case "lag":
+				$output = $this->api->player->commandHandler($cmd, $params, $issuer, false);
+				break;
+			case "time":
+				$output = $this->api->time->commandHandler($cmd, $params, $issuer, false);
+				break;
+			case "banip":
+			case "ban":
+			case "kick":
+			case "whitelist":
+			case "op":
+			case "deop":
+			case "sudo":
+				$output = $this->api->ban->commandHandler($cmd, $params, $issuer, false);
+				break;
+			case "give":
+				$output = $this->api->block->commandHandler($cmd, $params, $issuer, false);
+				break;
+			case "tell":
+			case "me":
+				$output = $this->api->chat->commandHandler($cmd, $params, $issuer, false);
+				break;
+		}
+		return $output;
+	}
+	
+	public function createConfig(){
 		$this->path = $this->api->plugin->createConfig($this, array(
 			"chat-format" => "<{DISPLAYNAME}> {MESSAGE}",
 			"login-after-commands" => array(
@@ -312,170 +472,10 @@ class Essentials implements Plugin{
 				SIGN.":0",
 			),
 		));
+		$this->reloadConfig();
+	}
+	
+	public function reloadConfig(){
 		$this->config = $this->api->plugin->readYAML($this->path."config.yml");
-	}
-	
-	public function handler(&$data, $event){
-		switch($event){
-			case "player.join":
-				break;
-			case "player.move":
-				$player = $this->api->player->getByEID($data->eid);
-				if($player->__get("lastMovement") < 10){
-					$this->initPlayer($player);
-				}
-				break;
-			case "player.flying":
-				if($this->api->ban->isOp($data->__get("iusername")) === true){
-					return true;
-				}
-				break;
-			case "player.block.break":
-				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
-					$t = $this->api->tileentity->get($data["target"]);
-					foreach($t as $ts){
-						if($ts->class === TILE_SIGN){
-							$this->api->tileentity->remove($ts->id);
-						}
-					}
-				}
-				break;
-			case "player.block.place.spawn":
-				if($data["item"]->getID() === SIGN){
-					return true;
-				}
-				break;
-			case "player.block.break.spawn":
-				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
-					return true;
-				}
-				break;
-		}
-	}
-	
-	public function initPlayer($player){
-		if($player->gamemode === CREATIVE){
-			foreach($player->inventory as $slot => $item){
-				if($this->api->ban->isOp($player->__get("iusername"))){
-					$player->setSlot($slot, BlockAPI::fromString($this->config["creative-item-op"][$slot]));
-				}else{
-					$player->setSlot($slot, BlockAPI::fromString($this->config["creative-item"][$slot]));
-				}
-			}
-		}
-	}
-	
-	public function getGM($name){
-		$gm["users"] = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/users.yml", CONFIG_YAML);
-		$gm["groups"] = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/groups.yml", CONFIG_YAML);
-		foreach($gm["groups"]->get("groups") as $groupname => $group){
-			if($group["default"] === true){
-				$defaultgroup = $groupname;
-				break;
-			}
-		}
-		if(isset($gm["users"]->get("users")[$name])){
-			$gm["users"] = $gm["users"]->get("users")[$name];
-			$gm["groups"] = $gm["groups"]->get("groups")[$gm["users"]["group"]];
-		}else{
-			$gm["users"] = array(
-				"group" => $defaultgroup,
-				"permissions" => array(),
-			);
-			$gm["groups"] = $gm["groups"]->get("groups")[$defaultgroup];
-		}
-		return $gm;
-	}
-	
-	public function defaultCommands($cmd, $params, $issuer, $alias){
-		$output = "";
-		switch($cmd){
-			case "?":
-			case "help":
-				$output = $this->api->sign->getHelp($params, $issuer);
-				break;
-			case "say":
-				$s = implode(" ", $params);
-				if(trim($s) == ""){
-					$output .= "Usage: /say <message ...>\n";
-					break;
-				}
-				$gm = $this->getGM($issuer->__get("username"));
-				$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($gm["groups"]["info"]["prefix"].$issuer->__get("username").$gm["groups"]["info"]["suffix"], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
-				break;
-			case "home":
-				break;
-			case "sethome":
-				break;
-			case "delhome":
-				break;
-			case "mute":
-				break;
-			case "back":
-				break;
-			case "tree":
-				switch(strtolower($params[0])){
-					case "redwood":
-						$meta = 1;
-						$output .= "Redwood tree spawned.";
-						break;
-					case "brich":
-						$meta = 2;
-						$output .= "Brich tree spawned.";
-						break;
-					case "tree":
-						$meta = 0;
-						$output .= "Tree spawned.";
-						break;
-					default:
-						$output .= "Usage: /tree <tree|brich|redwood>";
-						break 2;
-				}
-				TreeObject::growTree($issuer->level, new Vector3 ((int)$issuer->entity->x, (int)$issuer->entity->y, (int)$issuer->entity->z), $meta);
-				break;
-			case "clear":
-			case "stop":
-			case "status":
-			case "invisible":
-			case "difficulty":
-			case "defaultgamemode":
-				$output = $this->api->console->defaultCommands($cmd, $params, $issuer, false);
-				break;
-			case "seed":
-			case "save-all":
-			case "save-on":
-			case "save-off":
-				$output = $this->api->level->commandHandler($cmd, $params, $issuer, false);
-				break;
-			case "list":
-			case "kill":
-			case "gamemode":
-			case "tp":
-			case "spawnpoint":
-			case "spawn":
-			case "lag":
-				$output = $this->api->player->commandHandler($cmd, $params, $issuer, false);
-				break;
-			case "time":
-				$output = $this->api->time->commandHandler($cmd, $params, $issuer, false);
-				break;
-			case "banip":
-			case "ban":
-			case "kick":
-			case "whitelist":
-			case "op":
-			case "deop":
-			case "sudo":
-				$output = $this->api->ban->commandHandler($cmd, $params, $issuer, false);
-				break;
-			case "give":
-				$output = $this->api->block->commandHandler($cmd, $params, $issuer, false);
-				break;
-			case "tell":
-			case "me":
-				$output = $this->api->chat->commandHandler($cmd, $params, $issuer, false);
-				break;
-		}
-		return $output;
 	}
 }

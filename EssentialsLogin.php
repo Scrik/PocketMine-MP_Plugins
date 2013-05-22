@@ -14,7 +14,7 @@ apiversion=7
 Small Changelog
 ===============
 
-0.1:
+1.0:
 - Release
 
 */
@@ -41,9 +41,13 @@ class EssentialsLogin implements Plugin{
 			console("Stopping the server");
 			$this->api->console->defaultCommands("stop", array(), "plugin", false);
 		}
+		$this->config = $this->api->plugin->readYAML("./plugins/Essentials/config.yml");
+		if(file_exists("./plugins/Essentials/Logindata.dat")){
+			$this->password = unserialize(file_get_contents("./plugins/Essentials/Logindata.dat"));
+		}
+		
 		$this->api->event("server.close", array($this, "handler"));
 		$this->api->addHandler("api.cmd.command", array($this, "handler"), 5);
-		
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("tile.update", array($this, "handler"), 10);
 		$this->api->addHandler("player.flying", array($this, "handler"), 10);
@@ -52,18 +56,11 @@ class EssentialsLogin implements Plugin{
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 10);
 		$this->api->addHandler("player.block.activate", array($this, "handler"), 10);
 		
-		if(file_exists("./plugins/Essentials/Logindata.dat")){
-			$this->password = unserialize(file_get_contents("./plugins/Essentials/Logindata.dat"));
-		}
-		//$this->api->handle("plugin.login.status", array("password" => $this->password, "logined" => $this->logined, "forget" => $this->forget));
-		
 		$this->api->sign->register("register", "<password>", array($this, "commandHandler"));
 		$this->api->sign->register("login", "<password>", array($this, "commandHandler"));
 		$this->api->sign->register("logout", "", array($this, "commandHandler"));
 		$this->api->sign->register("password", "<remove|change> <player> <password>", array($this, "commandHandler"));
-		
 		$this->api->console->register("password", "<remove|change> <player> [password]", array($this, "commandHandler"));
-		$this->config = $this->api->plugin->readYAML("./plugins/Essentials/config.yml");
 	}
 	
 	public function handler(&$data, $event){

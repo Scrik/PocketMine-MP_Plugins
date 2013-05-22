@@ -14,7 +14,7 @@ apiversion=7
 Small Changelog
 ===============
 
-0.1:
+1.0:
 - Release
 
 */

@@ -10,6 +10,15 @@ class=SignAPI
 apiversion=7
 */
 
+/*
+Small Changelog
+===============
+
+0.1:
+- Release
+
+*/
+
 class SignAPI implements Plugin{
 	private $api;
 	public function __construct(ServerAPI $api, $server = false){

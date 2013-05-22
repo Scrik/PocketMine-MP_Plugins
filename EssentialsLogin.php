@@ -10,6 +10,15 @@ class=EssentialsLogin
 apiversion=7
 */
 
+/*
+Small Changelog
+===============
+
+0.1:
+- Release
+
+*/
+
 class EssentialsLogin implements Plugin{
 	private $api, $config, $password, $logined, $forget;
 	public function __construct(ServerAPI $api, $server = false){

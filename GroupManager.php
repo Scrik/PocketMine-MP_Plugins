@@ -10,6 +10,15 @@ class=GroupManager
 apiversion=7
 */
 
+/*
+Small Changelog
+===============
+
+0.1:
+- Release
+
+*/
+
 class GroupManager implements Plugin{
 	private $api, $users, $groups, $defaultgroup;
 	public function __construct(ServerAPI $api, $server = false){

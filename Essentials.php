@@ -10,6 +10,15 @@ class=Essentials
 apiversion=7
 */
 
+/*
+Small Changelog
+===============
+
+0.1:
+- Release
+
+*/
+
 class Essentials implements Plugin{
 	private $api, $sign;
 	public function __construct(ServerAPI $api, $server = false){

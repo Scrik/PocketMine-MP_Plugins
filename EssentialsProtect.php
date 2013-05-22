@@ -10,6 +10,15 @@ class=EssentialsProtect
 apiversion=7
 */
 
+/*
+Small Changelog
+===============
+
+0.1:
+- Release
+
+*/
+
 class EssentialsProtect implements Plugin{
 	private $api, $config, $protect;
 	public function __construct(ServerAPI $api, $server = false){
@@ -31,7 +40,7 @@ class EssentialsProtect implements Plugin{
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.activate", array($this, "handler"), 7);
 		
-		if(file_exists("./plugins/Essentials/Protectdata.dat")){
+		if(file_exists("./plugins/Essentials/Protectdata.dat")){ // 저장
 			$this->protect = unserialize(file_get_contents("./plugins/Essentials/Protectdata.dat"));
 		}
 		
@@ -41,7 +50,7 @@ class EssentialsProtect implements Plugin{
 	public function handler(&$data, $event){
 		switch($event){
 			case "server.close":
-				//file_put_contents("./plugins/Essentials/Protectdata.dat", serialize($this->save));
+				//file_put_contents("./plugins/Essentials/Protectdata.dat", serialize($this->save)); // 저장
 				break;
 			case "plugin.sign.api":
 				$data->register("blundo", "<player>", array($this, "defaultCommands"));

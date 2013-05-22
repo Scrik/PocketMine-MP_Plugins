@@ -30,8 +30,18 @@ class EssentialsLogin implements Plugin{
 	public function __destruct(){}
 	
 	public function init(){
+		foreach($this->api->plugin->getList() as $p){
+			if($p["name"] === "Essentials"){
+				$found = true;
+				break;
+			}
+		}
+		if(!isset($found)){
+			console("[ERROR] Can not find Essentials plugin");
+			console("Stopping the server");
+			$this->api->console->defaultCommands("stop", array(), "plugin", false);
+		}
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("plugin.sign.api", array($this, "handler"), 1);
 		$this->api->addHandler("api.cmd.command", array($this, "handler"), 5);
 		
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
@@ -46,6 +56,11 @@ class EssentialsLogin implements Plugin{
 			$this->password = unserialize(file_get_contents("./plugins/Essentials/Logindata.dat"));
 		}
 		//$this->api->handle("plugin.login.status", array("password" => $this->password, "logined" => $this->logined, "forget" => $this->forget));
+		
+		$this->api->sign->register("register", "<password>", array($this, "commandHandler"));
+		$this->api->sign->register("login", "<password>", array($this, "commandHandler"));
+		$this->api->sign->register("logout", "", array($this, "commandHandler"));
+		$this->api->sign->register("password", "<remove|change> <player> <password>", array($this, "commandHandler"));
 		
 		$this->api->console->register("password", "<remove|change> <player> [password]", array($this, "commandHandler"));
 		$this->config = $this->api->plugin->readYAML("./plugins/Essentials/config.yml");
@@ -106,12 +121,6 @@ class EssentialsLogin implements Plugin{
 					$data["player"]->sendChat("Please login first.");
 					return false;
 				}*/
-				break;
-			case "plugin.sign.api":
-				$data->register("register", "<password>", array($this, "commandHandler"));
-				$data->register("login", "<password>", array($this, "commandHandler"));
-				$data->register("logout", "", array($this, "commandHandler"));
-				$data->register("password", "<remove|change> <player> <password>", array($this, "commandHandler"));
 				break;
 			case "api.cmd.command":
 				if($this->logined[$data["issuer"]->__get("iusername")] !== true){

@@ -29,12 +29,20 @@ class GroupManager implements Plugin{
 	
 	public function init(){
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("plugin.sign.api", array($this, "handler"), 1);
 		$this->api->addHandler("api.cmd.command", array($this, "handler"), 1);
 		
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.place.spawn", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.break.spawn", array($this, "handler"), 5);
+		
+		$this->api->sign->register("manuadd", "<player> <group>", array($this, "defaultCommands"));
+		$this->api->sign->register("manudel", "<player>", array($this, "defaultCommands"));
+		$this->api->sign->register("manwhois", "<player>", array($this, "defaultCommands"));
+		$this->api->sign->register("mangadd", "<group>", array($this, "defaultCommands"));
+		$this->api->sign->register("mangdel", "<group>", array($this, "defaultCommands"));
+		$this->api->sign->register("listgroups", "", array($this, "defaultCommands"));
+		$this->api->sign->register("mansave", "", array($this, "defaultCommands"));
+		$this->api->sign->register("manload", "", array($this, "defaultCommands"));
 		
 		$this->api->console->register("manuadd", "<player> <group>", array($this, "defaultCommands"));
 		$this->api->console->register("manudel", "<player>", array($this, "defaultCommands"));
@@ -56,16 +64,6 @@ class GroupManager implements Plugin{
 			case "server.close":
 				$this->users->save();
 				$this->groups->save();
-				break;
-			case "plugin.sign.api":
-				$data->register("manuadd", "<player> <group>", array($this, "defaultCommands"));
-				$data->register("manudel", "<player>", array($this, "defaultCommands"));
-				$data->register("manwhois", "<player>", array($this, "defaultCommands"));
-				$data->register("mangadd", "<group>", array($this, "defaultCommands"));
-				$data->register("mangdel", "<group>", array($this, "defaultCommands"));
-				$data->register("listgroups", "", array($this, "defaultCommands"));
-				$data->register("mansave", "", array($this, "defaultCommands"));
-				$data->register("manload", "", array($this, "defaultCommands"));
 				break;
 			case "api.cmd.command":
 				$player = $this->users->get("users");

@@ -29,8 +29,18 @@ class EssentialsProtect implements Plugin{
 	public function __destruct(){}
 	
 	public function init(){
+		foreach($this->api->plugin->getList() as $p){
+			if($p["name"] === "Essentials"){
+				$found = true;
+				break;
+			}
+		}
+		if(!isset($found)){
+			console("[ERROR] Can not find Essentials plugin");
+			console("Stopping the server");
+			$this->api->console->defaultCommands("stop", array(), "plugin", false);
+		}
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("plugin.sign.api", array($this, "handler"), 1);
 		
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("tile.update", array($this, "handler"), 7);
@@ -44,6 +54,7 @@ class EssentialsProtect implements Plugin{
 			$this->protect = unserialize(file_get_contents("./plugins/Essentials/Protectdata.dat"));
 		}
 		
+		$this->api->sign->register("blundo", "<player>", array($this, "defaultCommands"));
 		$this->config = $this->api->plugin->readYAML("./plugins/Essentials/config.yml");
 	}
 	
@@ -51,9 +62,6 @@ class EssentialsProtect implements Plugin{
 		switch($event){
 			case "server.close":
 				//file_put_contents("./plugins/Essentials/Protectdata.dat", serialize($this->save)); // ÀúÀå
-				break;
-			case "plugin.sign.api":
-				$data->register("blundo", "<player>", array($this, "defaultCommands"));
 				break;
 			case "entity.explosion":
 				if($this->config["allow-explosion"] === false){

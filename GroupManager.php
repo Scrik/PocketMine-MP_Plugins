@@ -71,7 +71,7 @@ class GroupManager implements Plugin{
 				$player = $this->users->get("users");
 				$group = $this->groups->get("groups");
 				if(isset($player[$data["issuer"]->__get("username")])){
-					if(in_array($data["cmd"], $group[$player[$data["issuer"]->__get("username")]["group"]]["permissions"]) or in_array($data["cmd"], $player["permissions"])){
+					if(in_array($data["cmd"], $group[$player[$data["issuer"]->__get("username")]["group"]]["permissions"]) or in_array($data["cmd"], $player[$data["issuer"]->__get("username")]["permissions"])){
 						return true;
 					}
 				}elseif(in_array($data["cmd"], $group[$this->defaultgroup]["permissions"])){

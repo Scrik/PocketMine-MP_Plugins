@@ -20,7 +20,7 @@ class GroupManager implements Plugin{
 	
 	public function init(){
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("plugin.forge.api", array($this, "handler"), 1);
+		$this->api->addHandler("plugin.sign.api", array($this, "handler"), 1);
 		$this->api->addHandler("api.cmd.command", array($this, "handler"), 1);
 		
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 5);
@@ -48,15 +48,15 @@ class GroupManager implements Plugin{
 				$this->users->save();
 				$this->groups->save();
 				break;
-			case "plugin.forge.api":
-				$data["CommandAPI"]->register("manuadd", "<player> <group>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("manudel", "<player>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("manwhois", "<player>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("mangadd", "<group>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("mangdel", "<group>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("listgroups", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("mansave", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("manload", "", array($this, "defaultCommands"));
+			case "plugin.sign.api":
+				$data->register("manuadd", "<player> <group>", array($this, "defaultCommands"));
+				$data->register("manudel", "<player>", array($this, "defaultCommands"));
+				$data->register("manwhois", "<player>", array($this, "defaultCommands"));
+				$data->register("mangadd", "<group>", array($this, "defaultCommands"));
+				$data->register("mangdel", "<group>", array($this, "defaultCommands"));
+				$data->register("listgroups", "", array($this, "defaultCommands"));
+				$data->register("mansave", "", array($this, "defaultCommands"));
+				$data->register("manload", "", array($this, "defaultCommands"));
 				break;
 			case "api.cmd.command":
 				$player = $this->users->get("users");

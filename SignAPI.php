@@ -1,6 +1,29 @@
 <?php
 
-class CommandAPI{
+/*
+__PocketMine Plugin__
+name=SignAPI
+description=SignAPI
+version=0.0.1
+author=KsyMC
+class=SignAPI
+apiversion=7
+*/
+
+class SignAPI implements Plugin{
+	private $api;
+	public function __construct(ServerAPI $api, $server = false){
+		$this->api = $api;
+	}
+	
+	public function __destruct(){}
+	
+	public function init(){
+		$this->api->handle("plugin.sign.api", new Command($this->api));
+	}
+}
+
+class Command{
 	private $api, $help, $cmds, $alias;
 	public function __construct(ServerAPI $api){
 		$this->api = $api;

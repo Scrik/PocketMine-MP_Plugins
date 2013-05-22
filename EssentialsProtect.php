@@ -21,7 +21,7 @@ class EssentialsProtect implements Plugin{
 	
 	public function init(){
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("plugin.forge.api", array($this, "handler"), 1);
+		$this->api->addHandler("plugin.sign.api", array($this, "handler"), 1);
 		
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("tile.update", array($this, "handler"), 7);
@@ -43,8 +43,8 @@ class EssentialsProtect implements Plugin{
 			case "server.close":
 				//file_put_contents("./plugins/Essentials/Protectdata.dat", serialize($this->save));
 				break;
-			case "plugin.forge.api":
-				$data["CommandAPI"]->register("blundo", "<player>", array($this, "defaultCommands"));
+			case "plugin.sign.api":
+				$data->register("blundo", "<player>", array($this, "defaultCommands"));
 				break;
 			case "entity.explosion":
 				if($this->config["allow-explosion"] === false){

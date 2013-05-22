@@ -11,7 +11,7 @@ apiversion=7
 */
 
 class Essentials implements Plugin{
-	private $api, $forge;
+	private $api, $sign;
 	public function __construct(ServerAPI $api, $server = false){
 		$this->api = $api;
 	}
@@ -20,7 +20,7 @@ class Essentials implements Plugin{
 	
 	public function init(){
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("plugin.forge.api", array($this, "handler"), 1);
+		$this->api->addHandler("plugin.sign.api", array($this, "handler"), 1);
 		
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("player.quit", array($this, "handler"), 5);
@@ -277,51 +277,51 @@ class Essentials implements Plugin{
 					return true;
 				}
 				break;
-			case "plugin.forge.api":
-				$this->forge = $data;
-				$data["CommandAPI"]->register("help", "[page|command name]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("say", "<message ...>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("home", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("sethome", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("delhome", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("mute", "<player>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("back", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("tree", "<tree|brich|redwood>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("clear", "", array($this, "defaultCommands"));
+			case "plugin.sign.api":
+				$this->sign = $data;
+				$data->register("help", "[page|command name]", array($this, "defaultCommands"));
+				$data->register("say", "<message ...>", array($this, "defaultCommands"));
+				$data->register("home", "", array($this, "defaultCommands"));
+				$data->register("sethome", "", array($this, "defaultCommands"));
+				$data->register("delhome", "", array($this, "defaultCommands"));
+				$data->register("mute", "<player>", array($this, "defaultCommands"));
+				$data->register("back", "", array($this, "defaultCommands"));
+				$data->register("tree", "<tree|brich|redwood>", array($this, "defaultCommands"));
+				$data->register("clear", "", array($this, "defaultCommands"));
 				// ConsoleAPI
-				$data["CommandAPI"]->register("stop", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("status", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("invisible", "<on | off>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("difficulty", "<0|1|2>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("defaultgamemode", "<mode>", array($this, "defaultCommands"));
+				$data->register("stop", "", array($this, "defaultCommands"));
+				$data->register("status", "", array($this, "defaultCommands"));
+				$data->register("invisible", "<on | off>", array($this, "defaultCommands"));
+				$data->register("difficulty", "<0|1|2>", array($this, "defaultCommands"));
+				$data->register("defaultgamemode", "<mode>", array($this, "defaultCommands"));
 				// LevelAPI
-				$data["CommandAPI"]->register("seed", "[world]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("save-all", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("save-on", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("save-off", "", array($this, "defaultCommands"));
+				$data->register("seed", "[world]", array($this, "defaultCommands"));
+				$data->register("save-all", "", array($this, "defaultCommands"));
+				$data->register("save-on", "", array($this, "defaultCommands"));
+				$data->register("save-off", "", array($this, "defaultCommands"));
 				// PlayerAPI
-				$data["CommandAPI"]->register("list", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("kill", "<player>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("gamemode", "<mode> [player]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("tp", "[target player] <destination player|w:world> OR /tp [target player] <x> <y> <z>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("spawnpoint", "[player] [x] [y] [z]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("spawn", "", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("lag", "", array($this, "defaultCommands"));
+				$data->register("list", "", array($this, "defaultCommands"));
+				$data->register("kill", "<player>", array($this, "defaultCommands"));
+				$data->register("gamemode", "<mode> [player]", array($this, "defaultCommands"));
+				$data->register("tp", "[target player] <destination player|w:world> OR /tp [target player] <x> <y> <z>", array($this, "defaultCommands"));
+				$data->register("spawnpoint", "[player] [x] [y] [z]", array($this, "defaultCommands"));
+				$data->register("spawn", "", array($this, "defaultCommands"));
+				$data->register("lag", "", array($this, "defaultCommands"));
 				// TimeAPI
-				$data["CommandAPI"]->register("time", "<check|set|add> [time]", array($this, "defaultCommands"));
+				$data->register("time", "<check|set|add> [time]", array($this, "defaultCommands"));
 				// BanAPI
-				$data["CommandAPI"]->register("banip", "<add|remove|list|reload> [IP|player]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("ban", "<add|remove|list|reload> [username]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("kick", "<player> [reason ...]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("whitelist", "<on|off|list|add|remove|reload> [username]", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("op", "<player>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("deop", "<player>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("sudo", "<player>", array($this, "defaultCommands"));
+				$data->register("banip", "<add|remove|list|reload> [IP|player]", array($this, "defaultCommands"));
+				$data->register("ban", "<add|remove|list|reload> [username]", array($this, "defaultCommands"));
+				$data->register("kick", "<player> [reason ...]", array($this, "defaultCommands"));
+				$data->register("whitelist", "<on|off|list|add|remove|reload> [username]", array($this, "defaultCommands"));
+				$data->register("op", "<player>", array($this, "defaultCommands"));
+				$data->register("deop", "<player>", array($this, "defaultCommands"));
+				$data->register("sudo", "<player>", array($this, "defaultCommands"));
 				// BlockAPI
-				$data["CommandAPI"]->register("give", "<player> <item[:damage]> [amount]", array($this, "defaultCommands"));
+				$data->register("give", "<player> <item[:damage]> [amount]", array($this, "defaultCommands"));
 				// ChatAPI
-				$data["CommandAPI"]->register("tell", "<player> <private message ...>", array($this, "defaultCommands"));
-				$data["CommandAPI"]->register("me", "<action ...>", array($this, "defaultCommands"));
+				$data->register("tell", "<player> <private message ...>", array($this, "defaultCommands"));
+				$data->register("me", "<action ...>", array($this, "defaultCommands"));
 				break;
 			case "player.block.break":
 				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
@@ -385,7 +385,7 @@ class Essentials implements Plugin{
 		switch($cmd){
 			case "?":
 			case "help":
-				$output = $this->forge["CommandAPI"]->getHelp($params, $issuer);
+				$output = $this->sign->getHelp($params, $issuer);
 				break;
 			case "say":
 				$s = implode(" ", $params);

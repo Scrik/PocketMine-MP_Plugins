@@ -22,7 +22,7 @@ class EssentialsLogin implements Plugin{
 	
 	public function init(){
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("plugin.forge.api", array($this, "handler"), 1);
+		$this->api->addHandler("plugin.sign.api", array($this, "handler"), 1);
 		$this->api->addHandler("api.cmd.command", array($this, "handler"), 5);
 		
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
@@ -98,11 +98,11 @@ class EssentialsLogin implements Plugin{
 					return false;
 				}*/
 				break;
-			case "plugin.forge.api":
-				$data["CommandAPI"]->register("register", "<password>", array($this, "commandHandler"));
-				$data["CommandAPI"]->register("login", "<password>", array($this, "commandHandler"));
-				$data["CommandAPI"]->register("logout", "", array($this, "commandHandler"));
-				$data["CommandAPI"]->register("password", "<remove|change> <player> <password>", array($this, "commandHandler"));
+			case "plugin.sign.api":
+				$data->register("register", "<password>", array($this, "commandHandler"));
+				$data->register("login", "<password>", array($this, "commandHandler"));
+				$data->register("logout", "", array($this, "commandHandler"));
+				$data->register("password", "<remove|change> <player> <password>", array($this, "commandHandler"));
 				break;
 			case "api.cmd.command":
 				if($this->logined[$data["issuer"]->__get("iusername")] !== true){

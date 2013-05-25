@@ -230,7 +230,7 @@ class GroupManager implements Plugin{
 			"users" => array(),
 		));
 		$this->groups = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/groups.yml", CONFIG_YAML, array(
-			"gruops" => array(),
+			"groups" => array(),
 		));
 		$this->reloadConfig();
 	}

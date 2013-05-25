@@ -233,7 +233,7 @@ class Protect{
 	
 	public function check(&$output, $target){
 		if($this->data["protected"] === true){
-			if($this->owner !== $target){
+			if($this->data["owner"] !== $target){
 				$owner = $this->api->player->get($this->data["owner"]);
 				$output = "You are not the owner of the Chest. Owner : ".$owner;
 				return false;

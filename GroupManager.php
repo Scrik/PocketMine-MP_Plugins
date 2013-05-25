@@ -226,8 +226,12 @@ class GroupManager implements Plugin{
 	}
 	
 	public function createConfig(){
-		$this->users = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/users.yml", CONFIG_YAML);
-		$this->groups = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/groups.yml", CONFIG_YAML);
+		$this->users = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/users.yml", CONFIG_YAML, array(
+			"users" => array(),
+		));
+		$this->groups = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/groups.yml", CONFIG_YAML, array(
+			"gruops" => array(),
+		));
 		$this->reloadConfig();
 	}
 	

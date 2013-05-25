@@ -20,10 +20,9 @@ Small Changelog
 */
 
 class EssentialsProtect implements Plugin{
-	private $api, $config, $protect;
+	private $api, $config, $protect, $data;
 	public function __construct(ServerAPI $api, $server = false){
 		$this->api = $api;
-		$this->protect = array("chest" => false);
 	}
 	
 	public function __destruct(){}
@@ -41,8 +40,12 @@ class EssentialsProtect implements Plugin{
 			$this->api->console->defaultCommands("stop", array(), "plugin", false);
 		}
 		$this->config = $this->api->plugin->readYAML("./plugins/Essentials/config.yml");
-		if(file_exists("./plugins/Essentials/Protectdata.dat")){
-			$this->protect = unserialize(file_get_contents("./plugins/Essentials/Protectdata.dat"));
+		$this->data = new Config(DATA_PATH."/plugins/Essentials/Protectdata.yml", CONFIG_YAML);
+		foreach($this->data->getAll() as $tile){
+			if(!isset($tile["id"])){
+				break;
+			}
+			$this->add($this->api, $tile["id"], $tile["x"], $tile["y"], $tile["z"], $this->api->level->get($tile["world"]), $tile);
 		}
 		
 		$this->api->event("server.close", array($this, "handler"));
@@ -60,7 +63,11 @@ class EssentialsProtect implements Plugin{
 	public function handler(&$data, $event){
 		switch($event){
 			case "server.close":
-				//file_put_contents("./plugins/Essentials/Protectdata.dat", serialize($this->save));
+				foreach($this->getAll() as $tile){
+					$tiles[] = $tile->data;
+				}
+				$this->data->setAll($tiles);
+				$this->data->save();
 				break;
 			case "entity.explosion":
 				if($this->config["allow-explosion"] === false){
@@ -71,7 +78,9 @@ class EssentialsProtect implements Plugin{
 				break;
 			case "player.block.place":
 				if($data["item"]->getID() === CHEST){
-					$this->protect["chest"][$data["player"]->__get("iusername")][] = new Protect ($this->api, $data["player"]->__get("iusername"), new Position ($data["block"]->x, $data["block"]->y, $data["block"]->z, $data["player"]->level));
+					$protect = $this->addChest($this->api, $data["block"]->x, $data["block"]->y, $data["block"]->z, $data["player"]->level);
+					$protect->data["owner"] = $data["player"]->__get("iusername");
+					$protect->data["protected"] = false;
 					break;
 				}
 				if($this->api->ban->isOp($data["player"]->__get("iusername")) === false){
@@ -87,15 +96,14 @@ class EssentialsProtect implements Plugin{
 				if($data["target"]->getID() === CHEST){
 					$t = $this->get(new Position($data["target"]->x, $data["target"]->y, $data["target"]->z, $data["player"]->level));
 					if($t !== false){
-						if($this->api->ban->isOp($data["player"]->__get("iusername"))){
-							$t->__destruct();
-							break;
-						}
-						$break = $t->onBreak($output, $data["player"]);
+						$ret = $t->onBreak($output, $data["player"]);
 						if($output != ""){
 							$data["player"]->sendChat($output);
 						}
-						return $break;
+						if($ret === true){
+							$this->remove(new Position($t->x, $t->y, $t->z, $t->level));
+						}
+						return $ret;
 					}
 					break;
 				}
@@ -112,7 +120,7 @@ class EssentialsProtect implements Plugin{
 				if($data["target"]->getID() === CHEST){
 					$output = "";
 					$t = $this->get(new Position($data["target"]->x, $data["target"]->y, $data["target"]->z, $data["player"]->level));
-					if($data["item"]->getID() === STICK and ($this->api->ban->isOp($data["player"]->__get("iusername")) or $t->owner === $data["player"]->__get("iusername"))){
+					if($data["item"]->getID() === STICK and ($this->api->ban->isOp($data["player"]->__get("iusername")) or $t->data["owner"] === $data["player"]->__get("iusername"))){
 						$t->protectChange($output);
 						if($output != ""){
 							$data["player"]->sendChat($output);
@@ -133,15 +141,51 @@ class EssentialsProtect implements Plugin{
 		}
 	}
 	
+	public function add($api, $class, $x, $y, $z, Level $level, $data){
+		$protect = new Protect ($api, $class, $x, $y, $z, $level, $data);
+		$this->protect[] = $protect;
+		return $protect;
+	}
+	
+	public function addChest($api, $x, $y, $z, Level $level){
+		return $this->add($api, "Chest", $x, $y, $z, $level, array(
+			"id" => "Chest",
+			"x" => $x,
+			"y" => $y,
+			"z" => $z,
+			"world" => $level->getName(),
+		));
+	}
+	
 	public function get(Position $pos){
-		foreach($this->protect["chest"] as $array){
-			foreach($array as $t){
-				if($pos->__toString() === $t->pos->__toString()){
-					return $t;
-				}
+		foreach($this->protect as $t){
+			if($pos->level->getName() === $t->level->getName() and $pos->x === $t->x and $pos->y === $t->y and $pos->z === $t->z){
+				return $t;
 			}
 		}
 		return false;
+	}
+	
+	public function getAll($level = false){
+		if($level instanceof Level){
+			foreach($this->protect as $t){
+				if($level->getName() === $t->level->getName()){
+					return $protect[] = $t;
+				}
+			}
+			return $protect;
+		}
+		return $this->protect;
+	}
+	
+	public function remove(Position $pos){
+		foreach($this->protect as $key => $t){
+			if($pos->level->getName() === $t->level->getName() and $pos->x === $t->x and $pos->y === $t->y and $pos->z === $t->z){
+				$this->protect[$key] = null;
+				unset($this->protect[$key]);
+				break;
+			}
+		}
 	}
 	
 	public function defaultCommands($cmd, $params, $issuer, $alias){
@@ -155,18 +199,18 @@ class EssentialsProtect implements Plugin{
 }
 
 class Protect{
-	public $owner, $api, $protected, $pos;
-	public function __construct(ServerAPI $api, $player, Position $pos){
+	public $api, $x, $y, $z, $data, $class, $level;
+	public function __construct(ServerAPI $api, $class, $x, $y, $z, $level, $data = array()){
 		$this->api = $api;
-		$this->protected = false;
-		$this->owner = $player;
-		$this->pos = $pos;
-		$this->init();
+		$this->level = $level;
+		$this->x = $x;
+		$this->y = $y;
+		$this->z = $z;
+		$this->class = $class;
+		$this->data = $data;
 	}
 	
 	public function __destruct(){}
-	
-	public function init(){}
 	
 	public function onOpen(&$output, $player){
 		if($this->check($output, $player->__get("iusername"))){
@@ -177,21 +221,20 @@ class Protect{
 	}
 	
 	public function onBreak(&$output, $player){
-		if($this->protected === false){
-			$this->__destruct();
+		if($this->data["protected"] === true){
+			return true;
 		}
-		if($this->check($output, $player->__get("iusername"))){
-			$this->__destruct();
+		if($this->api->ban->isOp($player->__get("iusername")) or $this->check($output, $player->__get("iusername"))){
+			return true;
 		}else{
 			return false;
 		}
-		return true;
 	}
 	
 	public function check(&$output, $target){
-		if($this->protected === true){
+		if($this->data["protected"] === true){
 			if($this->owner !== $target){
-				$owner = $this->api->player->get($this->owner);
+				$owner = $this->api->player->get($this->data["owner"]);
 				$output = "You are not the owner of the Chest. Owner : ".$owner;
 				return false;
 			}else{
@@ -204,13 +247,13 @@ class Protect{
 	}
 	
 	public function protectChange(&$output){
-		if($this->protected === false){
-			$owner = $this->api->player->get($this->owner);
+		if($this->data["protected"] === false){
+			$owner = $this->api->player->get($this->data["owner"]);
 			$output = "The chest can only open the ".$owner.".";
-			$this->protected = true;
+			$this->data["protected"] = true;
 		}else{
 			$output = "This is now public chest.";
-			$this->protected = false;
+			$this->data["protected"] = false;
 		}
 	}
 }

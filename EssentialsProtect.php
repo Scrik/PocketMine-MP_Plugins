@@ -213,7 +213,7 @@ class Protect{
 	}
 	
 	public function onBreak(&$output, $player){
-		if($this->data["protected"] === true){
+		if($this->data["protected"] === false){
 			return true;
 		}
 		if($this->api->ban->isOp($player->__get("iusername")) or $this->check($output, $player->__get("iusername"))){

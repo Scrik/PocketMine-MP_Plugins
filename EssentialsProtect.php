@@ -50,7 +50,6 @@ class EssentialsProtect implements Plugin{
 		
 		$this->api->event("server.close", array($this, "handler"));
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
-		$this->api->addHandler("tile.update", array($this, "handler"), 7);
 		$this->api->addHandler("player.flying", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.break", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.place", array($this, "handler"), 7);
@@ -68,13 +67,6 @@ class EssentialsProtect implements Plugin{
 				}
 				$this->data->setAll($tiles);
 				$this->data->save();
-				break;
-			case "entity.explosion":
-				if($this->config["allow-explosion"] === false){
-					return true;
-				}
-				break;
-			case "tile.update":
 				break;
 			case "player.block.place":
 				if($data["item"]->getID() === CHEST){
@@ -200,7 +192,7 @@ class EssentialsProtect implements Plugin{
 
 class Protect{
 	public $api, $x, $y, $z, $data, $class, $level;
-	public function __construct(ServerAPI $api, $class, $x, $y, $z, $level, $data = array()){
+	public function __construct(ServerAPI $api, $class, $x, $y, $z, $level, $data){
 		$this->api = $api;
 		$this->level = $level;
 		$this->x = $x;
@@ -235,7 +227,7 @@ class Protect{
 		if($this->data["protected"] === true){
 			if($this->data["owner"] !== $target){
 				$owner = $this->api->player->get($this->data["owner"]);
-				$output = "You are not the owner of the Chest. Owner : ".$owner;
+				$output = "You are not the owner of the Chest. Owner : $owner";
 				return false;
 			}else{
 				$output = "My chest!";
@@ -249,7 +241,7 @@ class Protect{
 	public function protectChange(&$output){
 		if($this->data["protected"] === false){
 			$owner = $this->api->player->get($this->data["owner"]);
-			$output = "The chest can only open the ".$owner.".";
+			$output = "The chest can only open the $owner.";
 			$this->data["protected"] = true;
 		}else{
 			$output = "This is now public chest.";

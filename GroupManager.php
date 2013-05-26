@@ -99,7 +99,7 @@ class GroupManager implements Plugin{
 		switch($cmd){
 			case "manuadd":
 				if($params[0] == "" or $params[1] == ""){
-					$output .= "Usage: /manuadd <player> <group>";
+					$output .= "Usage: /manuadd <player> <group>\n";
 					break;
 				}
 				$player = $params[0];
@@ -109,7 +109,7 @@ class GroupManager implements Plugin{
 				}
 				$groups = $this->groups->get("groups");
 				if(!array_key_exists($group, $groups)){
-					$output .= "Group \"$group\" does not exist.";
+					$output .= "Group \"$group\" does not exist.\n";
 					break;
 				}
 				$users = $this->users->get("users");
@@ -123,7 +123,7 @@ class GroupManager implements Plugin{
 				break;
 			case "manudel":
 				if($params[0] == ""){
-					$output .= "Usage: /manudel <player>";
+					$output .= "Usage: /manudel <player>\n";
 					break;
 				}
 				$player = $params[0];
@@ -132,16 +132,16 @@ class GroupManager implements Plugin{
 				}
 				$users = $this->users->get("users");
 				if(!isset($users[$player])){
-					$output .= "Player \"$player\" does not exist.";
+					$output .= "Player \"$player\" does not exist.\n";
 					break;
 				}
 				unset($users[$player]);
 				$this->users->set("users", $users);
-				$output .= "$player has been removed";
+				$output .= "$player has been removed\n";
 				break;
 			case "manwhois":
 				if($params[0] == ""){
-					$output .= "Usage: /manwhois <player>";
+					$output .= "Usage: /manwhois <player>\n";
 					break;
 				}
 				$player = $params[0];
@@ -150,21 +150,21 @@ class GroupManager implements Plugin{
 				}
 				$users = $this->users->get("users");
 				if(!isset($users[$player])){
-					$output .= "Player \"$player\" does not exist.";
+					$output .= "Player \"$player\" does not exist.\n";
 					break;
 				}
 				$group = $users[$player]["group"];
-				$output .= "$player belong to the $group group.";
+				$output .= "$player belong to the $group group.\n";
 				break;
 			case "mangadd":
 				if($params[0] == ""){
-					$output .= "Usage: /mangadd <group>";
+					$output .= "Usage: /mangadd <group>\n";
 					break;
 				}
 				$group = $params[0];
 				$groups = $this->groups->get("groups");
 				if(isset($groups[$group])){
-					$output .= "$group already exists.";
+					$output .= "$group already exists.\n";
 					break;
 				}
 				$groups[$group] = array(
@@ -177,22 +177,22 @@ class GroupManager implements Plugin{
 					),
 				);
 				$this->groups->set("groups", $groups);
-				$output .= "Has been added to the $group group.";
+				$output .= "Has been added to the $group group.\n";
 				break;
 			case "mangdel":
 				if($params[0] == ""){
-					$output .= "Usage: /mangadd <group>";
+					$output .= "Usage: /mangadd <group>\n";
 					break;
 				}
 				$group = $params[0];
 				$groups = $this->groups->get("groups");
 				if(!array_key_exists($group, $groups)){
-					$output .= "Group \"$group\" does not exist.";
+					$output .= "Group \"$group\" does not exist.\n";
 					break;
 				}
 				unset($groups[$group]);
 				$this->groups->set("groups", $groups);
-				$output .= "$group has been removed";
+				$output .= "$group has been removed\n";
 				break;
 			case "listgroups":
 				$groups = $this->groups->get("groups");
@@ -200,6 +200,7 @@ class GroupManager implements Plugin{
 				foreach($groups as $name => $group){
 					$output .= "$name, ";
 				}
+				$output .= "\n";
 				break;
 			case "mansave":
 				$this->users->save();

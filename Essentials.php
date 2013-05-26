@@ -226,7 +226,7 @@ class Essentials implements Plugin{
 					break;
 				}
 				if($this->data[$issuer->__get("iusername")]->get("mute") === true){
-					$output .= "You are muted.";
+					$output .= "You are muted.\n";
 				}else{
 					$gm = $this->getGM($issuer->__get("username"));
 					$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($gm["groups"]["info"]["prefix"].$issuer->__get("username").$gm["groups"]["info"]["suffix"], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
@@ -240,9 +240,9 @@ class Essentials implements Plugin{
 						$this->api->player->teleport($name, "w:".$home["world"]);
 					}
 					$this->api->player->tppos($name, $home["x"], $home["y"], $home["z"]);
-					$output .= "teleported to your home.";
+					$output .= "teleported to your home.\n";
 				}else{
-					$output .= "You do not have a home.";
+					$output .= "You do not have a home.\n";
 				}
 				break;
 			case "sethome":
@@ -252,31 +252,31 @@ class Essentials implements Plugin{
 					"y" => $issuer->entity->y,
 					"z" => $issuer->entity->z,
 				));
-				$output .= "Your home has been saved.";
+				$output .= "Your home has been saved.\n";
 				break;
 			case "delhome":
 				$spawn = $issuer->level->getSpawn();
 				$this->data[$issuer->__get(iusername)]->set("home", array());
-				$output .= "Your home has been deleted.";
+				$output .= "Your home has been deleted.\n";
 				break;
 			case "mute":
 				if($params[0] == ""){
-					$output .= "Usage: /mute <player>";
+					$output .= "Usage: /mute <player>\n";
 					break;
 				}
 				$target = $this->api->player->get($params[0]);
 				if($target !== false){
 					if($this->data[$target->__get("iusername")]->get("mute") === false){
-						$output .= $target->__get("username")." has been muted.";
+						$output .= $target->__get("username")." has been muted.\n";
 						$target->sendChat("Your mute has been turned on.");
 						$this->data[$target->__get("iusername")]->set("mute", true);
 					}else{
-						$output .= $target->__get("username")." has been unmuted.";
+						$output .= $target->__get("username")." has been unmuted.\n";
 						$target->sendChat("Your mute has been turned off.");
 						$this->data[$target->__get("iusername")]->set("mute", false);
 					}
 				}else{
-					$output .= "Player \"".$params[0]."\" does not exist.";
+					$output .= "Player \"".$params[0]."\" does not exist.\n";
 				}
 				break;
 			case "back":
@@ -293,18 +293,18 @@ class Essentials implements Plugin{
 				switch(strtolower($params[0])){
 					case "redwood":
 						$meta = 1;
-						$output .= "Redwood tree spawned.";
+						$output .= "Redwood tree spawned.\n";
 						break;
 					case "brich":
 						$meta = 2;
-						$output .= "Brich tree spawned.";
+						$output .= "Brich tree spawned.\n";
 						break;
 					case "tree":
 						$meta = 0;
-						$output .= "Tree spawned.";
+						$output .= "Tree spawned.\n";
 						break;
 					default:
-						$output .= "Usage: /tree <tree|brich|redwood>";
+						$output .= "Usage: /tree <tree|brich|redwood>\n";
 						break 2;
 				}
 				TreeObject::growTree($issuer->level, new Vector3 ((int)$issuer->entity->x, (int)$issuer->entity->y, (int)$issuer->entity->z), $meta);

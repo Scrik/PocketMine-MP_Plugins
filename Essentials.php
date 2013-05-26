@@ -92,6 +92,7 @@ class Essentials implements Plugin{
 						"home" => array(),
 						"lastlocation" => array(),
 						"mute" => false,
+						"newbie" => true,
 					));
 				break;
 			case "player.quit":
@@ -118,6 +119,15 @@ class Essentials implements Plugin{
 					"z" => $data["player"]->entity->z,
 				));
 				break;
+			case "player.block.place":
+				if($data["player"]->gamemode === SURVIVAL and $data["item"]->getID() === SIGN){
+					if($this->api->getProperty("item-enforcement") === true){
+						$data["player"]->addItem(SIGN, 0, 1);
+					}else{
+						$this->api->entity->drop(new Position($data["player"]->entity->x, $data["player"]->entity->y, $data["player"]->entity->z, $data["player"]->level), BlockAPI::getItem(SIGN, 0, 1));
+					}
+				}
+				break;
 			case "player.block.break":
 				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
 					$t = $this->api->tileentity->get($data["target"]);
@@ -142,6 +152,17 @@ class Essentials implements Plugin{
 	}
 	
 	public function initPlayer($player){
+		if($this->data[$player->__get("iusername")]->get("newbie") === true){ //Newbie
+			$this->data[$player->__get("iusername")]->set("newbie", false);
+			$player->sendChat($this->config["newbies"]["message"]);
+			if($player->gamemode === SURVIVAL){
+				if($this->api->getProperty("item-enforcement") === true){
+					$player->addItem(SIGN, 0, 2);
+				}else{
+					$this->api->entity->drop(new Position($player->entity->x, $player->entity->y, $player->entity->z, $player->level), BlockAPI::getItem(SIGN, 0, 2));
+				}
+			}
+		}
 		if($player->gamemode === CREATIVE){
 			foreach($player->inventory as $slot => $item){
 				if($this->api->ban->isOp($player->__get("iusername"))){
@@ -149,6 +170,22 @@ class Essentials implements Plugin{
 				}else{
 					$player->setSlot($slot, BlockAPI::fromString($this->config["creative-item"][$slot]));
 				}
+			}
+		}elseif($player->gamemode === SURVIVAL){
+			if(array_key_exists($this->config["newbies"]["kit"], $this->config["kits"])){
+				foreach($this->config["kits"][$this->config["newbies"]["kit"]] as $kit){
+					$kit = explode(" ", $kit);
+					$i = BlockAPI::fromString(array_shift($kit));
+					if(!$player->hasItem($i->getID(), $i->getMetadata())){
+						if($this->api->getProperty("item-enforcement") === true){
+							$player->addItem($i->getID(), $i->getMetadata(), (int)$kit[0]);
+						}else{
+							$this->api->entity->drop(new Position($player->entity->x, $player->entity->y, $player->entity->z, $player->level), BlockAPI::getItem($i->getID(), $i->getMetadata(), (int)$kit[0]));
+						}
+					}
+				}
+			}else{
+				console("[Essentials] Can not find the ".$this->config["newbies"]["kit"].".");
 			}
 		}
 	}
@@ -333,6 +370,18 @@ class Essentials implements Plugin{
 				"placement" => '8,9,10,11,46,95',
 				"usage" => 327,
 				"break" => 7,
+			),
+			"kits" => array(
+				"tools" => array(
+					"272 1",
+					"273 1",
+					"274 1",
+					"275 1",
+				),
+			),
+			"newbies" => array(
+				"kit" => "tools",
+				"message" => "Use /help <page|command>",
 			),
 			"blocklog-displays" => 5,
 			"creative-item" => array(

@@ -96,7 +96,8 @@ class EssentialsLogin implements Plugin{
 				}
 				break;
 			case "player.move":
-				if($this->config["login-after-move"] === false){
+				$player = $this->api->player->getByEID($data->eid);
+				if($this->logined[$player->__get("iusername")] === false and $this->config["login-after-move"] === false){
 					return false;
 				}
 				break;

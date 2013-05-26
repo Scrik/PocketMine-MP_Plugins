@@ -359,13 +359,8 @@ class Essentials implements Plugin{
 		$this->path = $this->api->plugin->createConfig($this, array(
 			"chat-format" => "<{DISPLAYNAME}> {MESSAGE}",
 			"login-after-commands" => array(
-				"help",
-				"say",
-				"login",
-				"register",
 			),
 			"login-after-move" => true,
-			"allow-explosion" => false,
 			"blacklist" => array(
 				"placement" => '8,9,10,11,46,95',
 				"usage" => 327,
@@ -373,10 +368,6 @@ class Essentials implements Plugin{
 			),
 			"kits" => array(
 				"tools" => array(
-					"272 1",
-					"273 1",
-					"274 1",
-					"275 1",
 				),
 			),
 			"newbies" => array(
@@ -486,7 +477,7 @@ class Essentials implements Plugin{
 				DYE.":15",
 				IRON_HOE.":0",
 				IRON_SWORD.":0",
-				BOW.":0",
+				STICK.":0",
 				SIGN.":0",
 			),
 			"creative-item-op" => array(
@@ -591,7 +582,7 @@ class Essentials implements Plugin{
 				DYE.":15",
 				IRON_HOE.":0",
 				IRON_SWORD.":0",
-				BOW.":0",
+				STICK.":0",
 				SIGN.":0",
 			),
 		));

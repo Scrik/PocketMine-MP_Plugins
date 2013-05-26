@@ -89,12 +89,9 @@ class Essentials implements Plugin{
 					$spawn = $data->level->getSpawn();
 					$this->data[$data->__get("iusername")] = new Config(DATA_PATH."/plugins/Essentials/userdata/".$data->__get("iusername").".yml", CONFIG_YAML, array(
 						"ipAddress" => $data->ip,
-						"home" => array(
-							"world" => $spawn->level->getName(),
-							"x" => $spawn->x,
-							"y" => $spawn->y,
-							"z" => $spawn->z,
-						),
+						"home" => array(),
+						"lastlocation" => array(),
+						"mute" => false,
 					));
 				break;
 			case "player.quit":
@@ -112,6 +109,14 @@ class Essentials implements Plugin{
 				if($this->api->ban->isOp($data->__get("iusername")) === true){
 					return true;
 				}
+				break;
+			case "player.teleport":
+				$this->data[$data["player"]->__get("iusername")]->set("lastlocation", array(
+					"world" => $data["player"]->level->getName(),
+					"x" => $data["player"]->entity->x,
+					"y" => $data["player"]->entity->y,
+					"z" => $data["player"]->entity->z,
+				));
 				break;
 			case "player.block.break":
 				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
@@ -183,12 +188,16 @@ class Essentials implements Plugin{
 					$output .= "Usage: /say <message ...>\n";
 					break;
 				}
-				$gm = $this->getGM($issuer->__get("username"));
-				$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($gm["groups"]["info"]["prefix"].$issuer->__get("username").$gm["groups"]["info"]["suffix"], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
+				if($this->data[$issuer->__get("iusername")]->get("mute") === true){
+					$output .= "You are muted.";
+				}else{
+					$gm = $this->getGM($issuer->__get("username"));
+					$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($gm["groups"]["info"]["prefix"].$issuer->__get("username").$gm["groups"]["info"]["suffix"], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
+				}
 				break;
 			case "home":
 				$home = $this->data[$issuer->__get("iusername")]->get("home");
-				if(isset($home)){
+				if($home !== array()){
 					$name = $issuer->__get("iusername");
 					if($home["world"] !== $issuer->level->getName()){
 						$this->api->player->teleport($name, "w:".$home["world"]);
@@ -202,25 +211,46 @@ class Essentials implements Plugin{
 			case "sethome":
 				$this->data[$issuer->__get("iusername")]->set("home", array(
 					"world" => $issuer->level->getName(),
-					"x" => (int) $issuer->entity->x + 0.5,
-					"y" => (int) $issuer->entity->y,
-					"z" => (int) $issuer->entity->z + 0.5
+					"x" => $issuer->entity->x,
+					"y" => $issuer->entity->y,
+					"z" => $issuer->entity->z,
 				));
 				$output .= "Your home has been saved.";
 				break;
 			case "delhome":
 				$spawn = $issuer->level->getSpawn();
-				$this->data[$issuer->__get(iusername)]->set("home", array(
-					"world" => $spawn->level->getName(),
-					"x" => $spawn->x,
-					"y" => $spawn->y,
-					"z" => $spawn->z,
-				));
+				$this->data[$issuer->__get(iusername)]->set("home", array());
 				$output .= "Your home has been deleted.";
 				break;
 			case "mute":
+				if($params[0] == ""){
+					$output .= "Usage: /mute <player>";
+					break;
+				}
+				$target = $this->api->player->get($params[0]);
+				if($target !== false){
+					if($this->data[$target->__get("iusername")]->get("mute") === false){
+						$output .= $target->__get("username")." has been muted.";
+						$target->sendChat("Your mute has been turned on.");
+						$this->data[$target->__get("iusername")]->set("mute", true);
+					}else{
+						$output .= $target->__get("username")." has been unmuted.";
+						$target->sendChat("Your mute has been turned off.");
+						$this->data[$target->__get("iusername")]->set("mute", false);
+					}
+				}else{
+					$output .= "Player \"".$params[0]."\" does not exist.";
+				}
 				break;
 			case "back":
+				$backpos = $this->data[$issuer->__get("iusername")]->get("lastlocation");
+				if($backpos !== array()){
+					$name = $issuer->__get("iusername");
+					if($backpos["world"] !== $issuer->level->getName()){
+						$this->api->player->teleport($name, "w:".$backpos["world"]);
+					}
+					$this->api->player->tppos($name, $backpos["x"], $backpos["y"], $backpos["z"]);
+				}
 				break;
 			case "tree":
 				switch(strtolower($params[0])){

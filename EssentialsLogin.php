@@ -122,6 +122,9 @@ class EssentialsLogin implements Plugin{
 				break;
 			case "api.cmd.command":
 				if($this->logined[$data["issuer"]->__get("iusername")] !== true){
+					if($data["cmd"] === "login" or $data["cmd"] === "register" or $data["cmd"] === "logout"){
+						return true;
+					}
 					foreach($this->config["login-after-commands"] as $cmd){
 						if($cmd === $data["cmd"]){
 							return true;
@@ -240,7 +243,8 @@ class EssentialsLogin implements Plugin{
 				break;
 			case "logout":
 				if($this->logined[$issuer->__get("iusername")] === false){
-					$output .= "Please login first.";
+					$output .= "Please login first.\n";
+					break;
 				}
 				$this->logined[$issuer->__get("iusername")] = false;
 				$this->forget[$issuer->__get("iusername")] = 0;

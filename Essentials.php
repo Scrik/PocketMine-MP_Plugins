@@ -28,6 +28,9 @@ class Essentials implements Plugin{
 	public function __destruct(){}
 	
 	public function init(){
+		if(is_dir("./plugins/Essentials/userdata/") === false){
+			mkdir("./plugins/Essentials/userdata/", 0777, true);
+		}
 		$this->createConfig();
 		
 		$this->api->event("server.close", array($this, "handler"));
@@ -83,6 +86,21 @@ class Essentials implements Plugin{
 	public function handler(&$data, $event){
 		switch($event){
 			case "player.join":
+					$spawn = $data->level->getSpawn();
+					$this->data[$data->__get("iusername")] = new Config(DATA_PATH."/plugins/Essentials/userdata/".$data->__get("iusername").".yml", CONFIG_YAML, array(
+						"ipAddress" => $data->ip,
+						"home" => array(
+							"world" => $spawn->level->getName(),
+							"x" => $spawn->x,
+							"y" => $spawn->y,
+							"z" => $spawn->z,
+						),
+					));
+				break;
+			case "player.quit":
+				if($this->data[$data->__get("iusername")] instanceof Config){
+					$this->data[$data->__get("iusername")]->save();
+				}
 				break;
 			case "player.move":
 				$player = $this->api->player->getByEID($data->eid);
@@ -169,10 +187,36 @@ class Essentials implements Plugin{
 				$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($gm["groups"]["info"]["prefix"].$issuer->__get("username").$gm["groups"]["info"]["suffix"], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
 				break;
 			case "home":
+				$home = $this->data[$issuer->__get("iusername")]->get("home");
+				if(isset($home)){
+					$name = $issuer->__get("iusername");
+					if($home["world"] !== $issuer->level->getName()){
+						$this->api->player->teleport($name, "w:".$home["world"]);
+					}
+					$this->api->player->tppos($name, $home["x"], $home["y"], $home["z"]);
+					$output .= "teleported to your home.";
+				}else{
+					$output .= "You do not have a home.";
+				}
 				break;
 			case "sethome":
+				$this->data[$issuer->__get("iusername")]->set("home", array(
+					"world" => $issuer->level->getName(),
+					"x" => (int) $issuer->entity->x + 0.5,
+					"y" => (int) $issuer->entity->y,
+					"z" => (int) $issuer->entity->z + 0.5
+				));
+				$output .= "Your home has been saved.";
 				break;
 			case "delhome":
+				$spawn = $issuer->level->getSpawn();
+				$this->data[$issuer->__get(iusername)]->set("home", array(
+					"world" => $spawn->level->getName(),
+					"x" => $spawn->x,
+					"y" => $spawn->y,
+					"z" => $spawn->z,
+				));
+				$output .= "Your home has been deleted.";
 				break;
 			case "mute":
 				break;

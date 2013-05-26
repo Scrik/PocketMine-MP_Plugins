@@ -28,6 +28,11 @@ class GroupManager implements Plugin{
 	public function __destruct(){}
 	
 	public function init(){
+		if(is_dir("./plugins/GroupManager/worlds/".$this->api->getProperty("level-name")) === false){
+			mkdir("./plugins/GroupManager/worlds/".$this->api->getProperty("level-name"), 0777, true);
+		}
+		$this->createConfig();
+		
 		$this->api->event("server.close", array($this, "handler"));
 		$this->api->addHandler("api.cmd.command", array($this, "handler"), 1);
 		
@@ -52,11 +57,6 @@ class GroupManager implements Plugin{
 		$this->api->console->register("listgroups", "", array($this, "defaultCommands"));
 		$this->api->console->register("mansave", "", array($this, "defaultCommands"));
 		$this->api->console->register("manload", "", array($this, "defaultCommands"));
-		
-		if(is_dir("./plugins/GroupManager/worlds/".$this->api->getProperty("level-name")) === false){
-			mkdir("./plugins/GroupManager/worlds/".$this->api->getProperty("level-name"), 0777, true);
-		}
-		$this->createConfig();
 	}
 	
 	public function handler(&$data, $event){

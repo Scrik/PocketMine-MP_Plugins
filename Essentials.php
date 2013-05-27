@@ -69,6 +69,7 @@ class Essentials implements Plugin{
 		$this->api->sign->register("tp", "[target player] <destination player|w:world> OR /tp [target player] <x> <y> <z>", array($this, "defaultCommands"));
 		$this->api->sign->register("spawnpoint", "[player] [x] [y] [z]", array($this, "defaultCommands"));
 		$this->api->sign->register("spawn", "", array($this, "defaultCommands"));
+		$this->api->sign->register("setspawn", "[x] [y] [z]", array($this, "defaultCommands"));
 		$this->api->sign->register("lag", "", array($this, "defaultCommands"));
 		$this->api->sign->register("time", "<check|set|add> [time]", array($this, "defaultCommands"));
 		$this->api->sign->register("banip", "<add|remove|list|reload> [IP|player]", array($this, "defaultCommands"));
@@ -308,6 +309,8 @@ class Essentials implements Plugin{
 						break 2;
 				}
 				TreeObject::growTree($issuer->level, new Vector3 ((int)$issuer->entity->x, (int)$issuer->entity->y, (int)$issuer->entity->z), $meta);
+				break;
+			case "setspawn":
 				break;
 			case "clear":
 			case "stop":

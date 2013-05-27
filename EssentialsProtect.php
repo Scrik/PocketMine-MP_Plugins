@@ -72,6 +72,7 @@ class EssentialsProtect implements Plugin{
 				if($data["item"]->getID() === CHEST){
 					$protect = $this->addChest($this->api, $data["block"]->x, $data["block"]->y, $data["block"]->z, $data["player"]->level);
 					$protect->data["owner"] = $data["player"]->__get("iusername");
+					$protect->data["caseowner"] = $data["player"]->__get("username");
 					$protect->data["protected"] = false;
 					break;
 				}
@@ -226,8 +227,7 @@ class Protect{
 	public function check(&$output, $target){
 		if($this->data["protected"] === true){
 			if($this->data["owner"] !== $target){
-				$owner = $this->api->player->get($this->data["owner"]);
-				$output = "You are not the owner of the Chest. Owner : $owner";
+				$output = "You are not the owner of the Chest. Owner : ".$this->data["caseowner"];
 				return false;
 			}else{
 				$output = "My chest!";
@@ -240,8 +240,7 @@ class Protect{
 	
 	public function protectChange(&$output){
 		if($this->data["protected"] === false){
-			$owner = $this->api->player->get($this->data["owner"]);
-			$output = "The chest can only open the $owner.";
+			$output = "The chest can only open the ".$this->data["caseowner"].".";
 			$this->data["protected"] = true;
 		}else{
 			$output = "This is now public chest.";

@@ -45,7 +45,7 @@ class SignAPI{
 			case "tile.update":
 				if($data->class === TILE_SIGN){
 					$line = $data->data["Text1"].$data->data["Text2"].$data->data["Text3"].$data->data["Text4"];
-					if($line{0} === "/"){
+					if($line != "" and $line{0} === "/"){
 						$player = $this->server->api->player->get($data->data["creator"]);
 						$this->run(substr($line, 1), $player);
 						$player->level->setBlock(new Vector3 ($data->data["x"], $data->data["y"], $data->data["z"]), BlockAPI::get(AIR));

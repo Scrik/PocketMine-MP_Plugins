@@ -76,7 +76,7 @@ class EssentialsLogin implements Plugin{
 				if($data->class === TILE_SIGN){
 					$player = $this->api->player->get($data->data["creator"]);
 					$line = $data->data["Text1"].$data->data["Text2"].$data->data["Text3"].$data->data["Text4"];
-					if($this->logined[$player->__get("iusername")] === false and $line{0} !== "/"){
+					if($this->logined[$player->__get("iusername")] === false and $line != "" and $line{0} !== "/"){
 						$player->sendChat("Please login first.");
 						$this->api->tileentity->remove($data->id);
 						$player->level->setBlock(new Vector3 ($data->x, $data->y, $data->z), BlockAPI::get(AIR));

@@ -85,20 +85,23 @@ class EssentialsLogin implements Plugin{
 				}
 				break;
 			case "player.flying":
-				if($this->logined[$data->__get("iusername")] === false){
-					$username = $data->__get("username");
-					$x = $data->entity->x;
-					$y = $data->level->getSpawn()->getY();
-					$z = $data->entity->z;
-					$this->api->player->tppos($username, $x, $y, $z);
-					$data->sendChat("Please login first.");
-					return true;
-				}
 				break;
 			case "player.move":
 				$player = $this->api->player->getByEID($data->eid);
 				if($this->logined[$player->__get("iusername")] === false and $this->config["login-after-move"] === false){
-					return false;
+					$down = $player->level->getBlock(new Vector3(((int) $player->entity->x + 0.5), ((int) $player->entity->y - 1), ((int) $player->entity->z + 0.5)));
+					if($down->getID() === AIR){
+						$username = $player->__get("username");
+						$x = $player->entity->x;
+						$y = (int) $player->entity->y - 1;
+						$z = $player->entity->z;
+						$this->api->player->tppos($username, $x, $y, $z);
+						break;
+					}
+					if($player->lastCorrect->x !== $player->entity->x or $player->lastCorrect->y !== $player->entity->y or $player->lastCorrect->z !== $player->entity->z){
+						$player->sendChat("Please login first.");
+						return false;
+					}
 				}
 				break;
 			case "player.interact":

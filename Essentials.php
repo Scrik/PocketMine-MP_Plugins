@@ -7,7 +7,7 @@ description=Essentials
 version=0.0.1
 author=KsyMC
 class=Essentials
-apiversion=7
+apiversion=8
 */
 
 /*
@@ -132,11 +132,7 @@ class Essentials implements Plugin{
 			case "player.block.break":
 				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
 					$t = $this->api->tileentity->get($data["target"]);
-					foreach($t as $ts){
-						if($ts->class === TILE_SIGN){
-							$this->api->tileentity->remove($ts->id);
-						}
-					}
+					$this->api->tileentity->remove($t->id);
 				}
 				break;
 			case "player.block.place.spawn":

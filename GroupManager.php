@@ -7,7 +7,7 @@ description=GroupManager
 version=0.0.1
 author=KsyMC
 class=GroupManager
-apiversion=7
+apiversion=8
 */
 
 /*

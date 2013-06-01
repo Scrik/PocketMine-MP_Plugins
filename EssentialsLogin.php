@@ -7,7 +7,7 @@ description=EssentialsLogin
 version=0.0.1
 author=KsyMC
 class=EssentialsLogin
-apiversion=7
+apiversion=8
 */
 
 /*

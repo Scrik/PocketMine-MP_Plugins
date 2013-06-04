@@ -187,28 +187,6 @@ class Essentials implements Plugin{
 		}
 	}
 	
-	public function getGM($name){
-		$gm["users"] = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/users.yml", CONFIG_YAML);
-		$gm["groups"] = new Config(DATA_PATH."/plugins/GroupManager/worlds/".$this->api->getProperty("level-name")."/groups.yml", CONFIG_YAML);
-		foreach($gm["groups"]->get("groups") as $groupname => $group){
-			if($group["default"] === true){
-				$defaultgroup = $groupname;
-				break;
-			}
-		}
-		if(isset($gm["users"]->get("users")[$name])){
-			$gm["users"] = $gm["users"]->get("users")[$name];
-			$gm["groups"] = $gm["groups"]->get("groups")[$gm["users"]["group"]];
-		}else{
-			$gm["users"] = array(
-				"group" => $defaultgroup,
-				"permissions" => array(),
-			);
-			$gm["groups"] = $gm["groups"]->get("groups")[$defaultgroup];
-		}
-		return $gm;
-	}
-	
 	public function defaultCommands($cmd, $params, $issuer, $alias){
 		$output = "";
 		switch($cmd){
@@ -225,8 +203,8 @@ class Essentials implements Plugin{
 				if($this->data[$issuer->__get("iusername")]->get("mute") === true){
 					$output .= "You are muted.\n";
 				}else{
-					$gm = $this->getGM($issuer->__get("username"));
-					$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($gm["groups"]["info"]["prefix"].$issuer->__get("username").$gm["groups"]["info"]["suffix"], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
+					$chat = array_pop($params);
+					$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($chat[0].$issuer->__get("username").$chat[1], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
 				}
 				break;
 			case "home":

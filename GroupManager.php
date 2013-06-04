@@ -40,21 +40,39 @@ class GroupManager implements Plugin{
 		$this->reloadConfig();
 		
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("api.cmd.command", array($this, "handler"), 1);
+		$this->api->addHandler("console.command", array($this, "permissionsCheck"), 5);
 		
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.place.spawn", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.break.spawn", array($this, "handler"), 5);
 		
-		$this->api->sign->register("manuadd", "<player> <group>", array($this, "defaultCommands"));
-		$this->api->sign->register("manudel", "<player>", array($this, "defaultCommands"));
-		$this->api->sign->register("manwhois", "<player>", array($this, "defaultCommands"));
-		$this->api->sign->register("mangadd", "<group>", array($this, "defaultCommands"));
-		$this->api->sign->register("mangdel", "<group>", array($this, "defaultCommands"));
-		$this->api->sign->register("listgroups", "", array($this, "defaultCommands"));
-		$this->api->sign->register("mansave", "", array($this, "defaultCommands"));
-		$this->api->sign->register("manload", "", array($this, "defaultCommands"));
+		$this->api->console->register("manuadd", "<player> <group>", array($this, "defaultCommands"));
+		$this->api->console->register("manudel", "<player>", array($this, "defaultCommands"));
+		$this->api->console->register("manwhois", "<player>", array($this, "defaultCommands"));
+		$this->api->console->register("mangadd", "<group>", array($this, "defaultCommands"));
+		$this->api->console->register("mangdel", "<group>", array($this, "defaultCommands"));
+		$this->api->console->register("listgroups", "", array($this, "defaultCommands"));
+		$this->api->console->register("mansave", "", array($this, "defaultCommands"));
+		$this->api->console->register("manload", "", array($this, "defaultCommands"));
+	}
+	
+	public function permissionsCheck($data, $event){
+		switch($event){
+			case "console.command":
+				if($data["issuer"] instanceof Player){
+					if(in_array($data["cmd"], $this->players[$data["issuer"]->iusername]["groupdata"]["permissions"]) or in_array($data["cmd"], $this->players[$data["issuer"]->iusername]["userdata"]["permissions"])){
+						if($data["cmd"] === "chat"){
+							$prefix = $this->players[$data["issuer"]->iusername]["groupdata"]["info"]["prefix"];
+							$suffix = $this->players[$data["issuer"]->iusername]["groupdata"]["info"]["suffix"];
+							$data["parameters"][] = array($prefix, $suffix);
+						}
+						return true;
+					}
+					return false;
+				}
+				break;
+		}
 	}
 	
 	public function handler(&$data, $event){
@@ -71,19 +89,8 @@ class GroupManager implements Plugin{
 			case "server.close":
 				$this->save();
 				break;
-			case "api.cmd.command":
-				if(!$this->permissionsCheck($data["issuer"], $data["cmd"])){
-					return false;
-				}
-				if($data["cmd"] === "say"){
-					$prefix = $this->players[$data["issuer"]->iusername]["groupdata"]["info"]["prefix"];
-					$suffix = $this->players[$data["issuer"]->iusername]["groupdata"]["info"]["suffix"];
-					array_push($data["parameters"], array($prefix, $suffix));
-					console(implode(",", $data["parameters"]));
-				}
-				return true;
 			case "player.block.touch":
-				if($this->signCheck($data["type"], $data["item"], $data["target"]) === false){
+				if(($data["type"] === "place" and $data["item"]->getID() !== SIGN) or ($data["type"] === "break" and $data["target"]->getID() !== SIGN_POST and $data["target"]->getID() !== WALL_SIGN)){
 					if($this->players[$data["player"]->iusername]["groupdata"]["info"]["build"] === false){
 						$data["player"]->sendChat("You don't have permission");
 						return false;
@@ -192,13 +199,6 @@ class GroupManager implements Plugin{
 		return $output;
 	}
 	
-	public function permissionsCheck($player, $cmd){
-		if(in_array($cmd, $this->players[$player->iusername]["groupdata"]["permissions"]) or in_array($cmd, $this->players[$player->iusername]["userdata"]["permissions"])){
-			return true;
-		}
-		return false;
-	}
-	
 	public function changeGroup($player, $group, $world = false){
 		if($player instanceof Player){
 			$player = $plaer->iusername;
@@ -232,20 +232,7 @@ class GroupManager implements Plugin{
 			$this->worlds[$world]["groups"]->save();
 		}
 	}
-	
-	public function signCheck($type, $item, $target){
-		if($type === "place"){
-			if($item->getID() === SIGN){
-				return true;
-			}
-		}else{
-			if($target->getID() === SIGN_POST or $target->getID() === WALL_SIGN){
-				return true;
-			}
-		}
-		return false;
-	}
-	
+		
 	public function reloadConfig(){
 		foreach($this->worlds as $world => $data){
 			$this->worlds[$world]["users"]->load(DATA_PATH."/plugins/GroupManager/worlds/$world/users.yml", CONFIG_YAML);

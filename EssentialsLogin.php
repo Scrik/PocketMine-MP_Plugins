@@ -47,20 +47,18 @@ class EssentialsLogin implements Plugin{
 		}
 		
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("api.cmd.command", array($this, "handler"), 5);
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("tile.update", array($this, "handler"), 10);
-		$this->api->addHandler("player.flying", array($this, "handler"), 10);
 		$this->api->addHandler("player.move", array($this, "handler"), 10);
 		$this->api->addHandler("player.interact", array($this, "handler"), 10);
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 10);
+		$this->api->addHandler("console.command", array($this, "handler"), 10);
 		$this->api->addHandler("player.block.activate", array($this, "handler"), 10);
 		
-		$this->api->sign->register("register", "<password>", array($this, "commandHandler"));
-		$this->api->sign->register("login", "<password>", array($this, "commandHandler"));
-		$this->api->sign->register("logout", "", array($this, "commandHandler"));
-		$this->api->sign->register("password", "<remove|change> <player> <password>", array($this, "commandHandler"));
-		$this->api->console->register("password", "<remove|change> <player> [password]", array($this, "commandHandler"));
+		$this->api->console->register("register", "<password>", array($this, "commandHandler"));
+		$this->api->console->register("login", "<password>", array($this, "commandHandler"));
+		$this->api->console->register("logout", "", array($this, "commandHandler"));
+		$this->api->console->register("password", "<remove|change> <player> <password>", array($this, "commandHandler"));
 	}
 	
 	public function handler(&$data, $event){
@@ -83,8 +81,6 @@ class EssentialsLogin implements Plugin{
 						return false;
 					}
 				}
-				break;
-			case "player.flying":
 				break;
 			case "player.move":
 				$player = $this->api->player->getByEID($data->eid);
@@ -112,9 +108,11 @@ class EssentialsLogin implements Plugin{
 				}
 				break;
 			case "player.block.touch":
-				if($this->logined[$data["player"]->__get("iusername")] === false and $this->signCheck($data["type"], $data["item"], $data["target"]) === false){
-					$data["player"]->sendChat("Please login first.");
-					return false;
+				if(($data["type"] === "place" and $data["item"]->getID() !== SIGN) or ($data["type"] === "break" and $data["target"]->getID() !== SIGN_POST and $data["target"]->getID() !== WALL_SIGN)){
+					if($this->logined[$data["player"]->__get("iusername")] === false){
+						$data["player"]->sendChat("Please login first.");
+						return false;
+					}
 				}
 				break;
 			case "player.block.activate":
@@ -123,33 +121,17 @@ class EssentialsLogin implements Plugin{
 					return false;
 				}*/
 				break;
-			case "api.cmd.command":
-				if($this->logined[$data["issuer"]->__get("iusername")] !== true){
-					if($data["cmd"] === "login" or $data["cmd"] === "register" or $data["cmd"] === "logout"){
-						return true;
-					}
-					foreach($this->config["login-after-commands"] as $cmd){
-						if($cmd === $data["cmd"]){
+			case "console.command":
+				if($data["issuer"] instanceof Player){
+					if($this->logined[$data["issuer"]->iusername] !== true){
+						if($data["cmd"] === "login" or $data["cmd"] === "register" or $data["cmd"] === "logout" or in_array($data["cmd"], $this->config["login-after-commands"])){
 							return true;
 						}
+						return false;
 					}
-					return false;
 				}
 				break;
 		}
-	}
-	
-	public function signCheck($type, $item, $target){
-		if($type === "place"){
-			if($item->getID() === SIGN){
-				return true;
-			}
-		}else{
-			if($target->getID() === SIGN_POST or $target->getID() === WALL_SIGN){
-				return true;
-			}
-		}
-		return false;
 	}
 	
 	public function commandHandler($cmd, $params, $issuer, $alias){

@@ -50,13 +50,12 @@ class EssentialsProtect implements Plugin{
 		
 		$this->api->event("server.close", array($this, "handler"));
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
-		$this->api->addHandler("player.flying", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.break", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.place", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 7);
 		$this->api->addHandler("player.block.activate", array($this, "handler"), 7);
 		
-		$this->api->sign->register("blundo", "<player>", array($this, "defaultCommands"));
+		$this->api->console->register("blundo", "<player>", array($this, "defaultCommands"));
 	}
 	
 	public function handler(&$data, $event){

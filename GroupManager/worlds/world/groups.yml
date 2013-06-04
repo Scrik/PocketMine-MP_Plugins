@@ -3,7 +3,7 @@ groups:
   Default:
     default: true
     permissions:
-      - say
+      - chat
       - help
       - list
       - spawn
@@ -18,7 +18,7 @@ groups:
   People:
     default: false
     permissions:
-      - say
+      - chat
       - help
       - back
       - home
@@ -39,7 +39,7 @@ groups:
   Moderator:
     default: false
     permissions:
-      - say
+      - chat
       - help
       - back
       - home
@@ -77,7 +77,7 @@ groups:
   Admin:
     default: false
     permissions:
-      - say
+      - chat
       - help
       - back
       - home

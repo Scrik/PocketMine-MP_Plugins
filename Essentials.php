@@ -20,91 +20,164 @@ Small Changelog
 */
 
 class Essentials implements Plugin{
-	private $api, $sign;
+	private $api, $lang;
+	private static $cmds = array(
+		"home",
+		"sethome",
+		"delhome",
+		"mute",
+		"back",
+		"heal",
+		"tree",
+		"clearinventory",
+		"setspawn",
+		"burn",
+		"kickall",
+		"killall",
+		"login",
+		"logout",
+		"register",
+		"unregister",
+		"changepassword",
+	);
+	
 	public function __construct(ServerAPI $api, $server = false){
 		$this->api = $api;
 	}
 	
-	public function __destruct(){}
-	
 	public function init(){
-		if(is_dir("./plugins/Essentials/userdata/") === false){
-			mkdir("./plugins/Essentials/userdata/", 0777, true);
-		}
-		$this->createConfig();
-		
 		$this->api->event("server.close", array($this, "handler"));
-		$this->api->addHandler("tile.update", array($this, "handler"), 5);
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("player.quit", array($this, "handler"), 5);
-		$this->api->addHandler("player.move", array($this, "handler"), 5);
+		$this->api->addHandler("player.chat", array($this, "handler"), 5);
 		$this->api->addHandler("player.death", array($this, "handler"), 5);
 		$this->api->addHandler("player.teleport", array($this, "handler"), 5);
-		$this->api->addHandler("player.block.place", array($this, "handler"), 5);
+		$this->api->addHandler("player.spawn", array($this, "initPlayer"), 5);
 		$this->api->addHandler("player.block.break", array($this, "handler"), 5);
-		$this->api->addHandler("player.block.place.spawn", array($this, "handler"), 5);
-		$this->api->addHandler("player.block.break.spawn", array($this, "handler"), 5);
+		$this->api->addHandler("console.command", array($this, "permissionsCheck"), 5);
+		$this->api->addHandler("groupmanager.permission.check", array($this, "permissionsCheck"), 5);
 		
-		$this->api->console->register("chat", "<message ...>", array($this, "defaultCommands"));
 		$this->api->console->register("home", "", array($this, "defaultCommands"));
 		$this->api->console->register("sethome", "", array($this, "defaultCommands"));
 		$this->api->console->register("delhome", "", array($this, "defaultCommands"));
 		$this->api->console->register("mute", "<player>", array($this, "defaultCommands"));
 		$this->api->console->register("back", "", array($this, "defaultCommands"));
+		$this->api->console->register("heal", "[player]", array($this, "defaultCommands"));
 		$this->api->console->register("tree", "<tree|brich|redwood>", array($this, "defaultCommands"));
-		$this->api->console->register("setspawn", "[x] [y] [z]", array($this, "defaultCommands"));
+		$this->api->console->register("clearinventory", "[player] [item]", array($this, "defaultCommands"));
+		$this->api->console->register("setspawn", "", array($this, "defaultCommands"));
+		$this->api->console->register("burn", "<player> <seconds>", array($this, "defaultCommands"));
+		$this->api->console->register("kickall", "[reason]", array($this, "defaultCommands"));
+		$this->api->console->register("killall", "[reason]", array($this, "defaultCommands"));
+		$this->readConfig();
+	}
+	
+	public function __destruct(){
+	}
+	
+	public function readConfig(){
+		if(is_dir("./plugins/Essentials/userdata/") === false){
+			mkdir("./plugins/Essentials/userdata/", 0777, true);
+		}
+		$this->path = $this->api->plugin->createConfig($this, array(
+			"login" => array(
+				"allow-non-loggedIn" => array(
+					"chat" => false,
+					"commands" => array(),
+					"move" => true,
+				),
+				"kick-on-wrong-password" => array(
+					"enable" => false,
+					"count" => 5,
+				),
+			),
+			"chat-format" => "<{DISPLAYNAME}> {MESSAGE}",
+			"blacklist" => array(
+				"placement" => '',
+				"usage" => '',
+				"break" => '',
+			),
+			"kits" => array(),
+			"newbies" => array(
+				"kit" => "",
+				"message" => "Welcome {DISPLAYNAME} to the server!",
+			),
+			"creative-item" => array(
+				"op" => array(),
+				"default" => array(),
+			),
+			"player-commands" => array(),
+		));
+		if(!file_exists($this->path."messages.yml")){
+			console("[ERROR] \"messages.yml\" file not found!");
+		}else{
+			$this->lang = new Config($this->path."messages.yml", CONFIG_YAML);
+		}
+		$this->config = $this->api->plugin->readYAML($this->path."config.yml");
+	}
+	
+	public function permissionsCheck($data, $event){
+		switch($event){
+			case "groupmanager.permission.check":
+				if(in_array(substr($data["permission"], 11), $this->config["player-commands"])){
+					return true;
+				}
+				return false;
+			case "console.command":
+				if(!($data["issuer"] instanceof Player) or $this->api->ban->isOp($data["issuer"]->iusername)){
+					return true;
+				}
+				if($data["cmd"] === "heal" or $data["cmd"] === "clearinventory"){
+					if($this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => isset($data["parameters"][0]) ? "essentials.".$data["cmd"].".other" : "essentials.".$data["cmd"])) !== false){
+						return true;
+					}
+					return false;
+				}elseif($data["cmd"] === "unregister"){
+					if($this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => isset($data["parameters"][1]) ? "essentials.".$data["cmd"].".other" : "essentials.".$data["cmd"])) !== false){
+						return true;
+					}
+					return false;
+				}elseif(in_array($data["cmd"], self::$cmds)){// All essentials commands
+					if($this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => "essentials.".$data["cmd"])) !== false){
+						return true;
+					}
+					return false;
+				}
+				break;
+		}
 	}
 	
 	public function handler(&$data, $event){
 		switch($event){
 			case "player.join":
 					$spawn = $data->level->getSpawn();
-					$this->data[$data->__get("iusername")] = new Config(DATA_PATH."/plugins/Essentials/userdata/".$data->__get("iusername").".yml", CONFIG_YAML, array(
+					$this->data[$data->iusername] = new Config(DATA_PATH."/plugins/Essentials/userdata/".$data->iusername.".yml", CONFIG_YAML, array(
 						"ipAddress" => $data->ip,
-						"home" => array(),
-						"lastlocation" => array(),
 						"mute" => false,
 						"newbie" => true,
 					));
 				break;
-			case "tile.update":
-				if($data->class === TILE_SIGN){
-					$line = $data->data["Text1"].$data->data["Text2"].$data->data["Text3"].$data->data["Text4"];
-					if(substr($line, 0, 1) === "/"){
-						$player = $this->api->player->get($data->data["creator"]);
-						$this->api->console->run(substr($line, 1), $player);
-						$player->level->setBlock(new Vector3($data->data["x"], $data->data["y"], $data->data["z"]), BlockAPI::get(AIR));
-						$this->api->tile->remove($data->id);
-					}
-				}
-				break;
 			case "player.quit":
-				if($this->data[$data->__get("iusername")] instanceof Config){
-					$this->data[$data->__get("iusername")]->save();
+				if($this->data[$data->iusername] instanceof Config){
+					$this->data[$data->iusername]->save();
 				}
 				break;
-			case "player.move":
-				$player = $this->api->player->getByEID($data->eid);
-				if($player->__get("lastMovement") < 10){
-					$this->initPlayer($player);
+			case "player.chat":
+				$data = array("player" => $data["player"], "message" => str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}"), array($data["player"]->username, $data["message"], $data["player"]->level->getName()), $this->config["chat-format"]));
+				if($this->api->handle("essentials.".$event, $data) !== false){
+					$this->api->chat->broadcast($data["message"]);
 				}
+				return false;
+			case "player.death":
+				$data["player"]->sendChat("Use the /back command to return to your death point.");
 				break;
 			case "player.teleport":
-				$this->data[$data["player"]->__get("iusername")]->set("lastlocation", array(
+				$this->data[$data["player"]->iusername]->set("lastlocation", array(
 					"world" => $data["player"]->level->getName(),
 					"x" => $data["player"]->entity->x,
 					"y" => $data["player"]->entity->y,
 					"z" => $data["player"]->entity->z,
 				));
-				break;
-			case "player.block.place":
-				if($data["player"]->gamemode === SURVIVAL and $data["item"]->getID() === SIGN){
-					if($this->api->getProperty("item-enforcement") === true){
-						$data["player"]->addItem(SIGN, 0, 1);
-					}else{
-						$this->api->entity->drop(new Position($data["player"]->entity->x, $data["player"]->entity->y, $data["player"]->entity->z, $data["player"]->level), BlockAPI::getItem(SIGN, 0, 1));
-					}
-				}
 				break;
 			case "player.block.break":
 				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
@@ -112,89 +185,68 @@ class Essentials implements Plugin{
 					$this->api->tile->remove($t->id);
 				}
 				break;
-			case "player.block.place.spawn":
-				if($data["item"]->getID() === SIGN){
-					return true;
-				}
-				break;
-			case "player.block.break.spawn":
-				if($data["target"]->getID() === SIGN_POST or $data["target"]->getID() === WALL_SIGN){
-					return true;
-				}
-				break;
 		}
 	}
 	
-	public function initPlayer($player){
-		if($this->data[$player->__get("iusername")]->get("newbie") === true){ //Newbie
-			$this->data[$player->__get("iusername")]->set("newbie", false);
-			$player->sendChat($this->config["newbies"]["message"]);
-			if($player->gamemode === SURVIVAL){
-				if($this->api->getProperty("item-enforcement") === true){
-					$player->addItem(SIGN, 0, 2);
-				}else{
-					$this->api->entity->drop(new Position($player->entity->x, $player->entity->y, $player->entity->z, $player->level), BlockAPI::getItem(SIGN, 0, 2));
-				}
-			}
-		}
-		if($player->gamemode === CREATIVE){
-			foreach($player->inventory as $slot => $item){
-				if($this->api->ban->isOp($player->__get("iusername"))){
-					$player->setSlot($slot, BlockAPI::fromString($this->config["creative-item-op"][$slot]));
-				}else{
-					$player->setSlot($slot, BlockAPI::fromString($this->config["creative-item"][$slot]));
-				}
-			}
-		}elseif($player->gamemode === SURVIVAL){
-			if(array_key_exists($this->config["newbies"]["kit"], $this->config["kits"])){
-				foreach($this->config["kits"][$this->config["newbies"]["kit"]] as $kit){
-					$kit = explode(" ", $kit);
-					$i = BlockAPI::fromString(array_shift($kit));
-					if(!$player->hasItem($i->getID(), $i->getMetadata())){
-						if($this->api->getProperty("item-enforcement") === true){
-							$player->addItem($i->getID(), $i->getMetadata(), (int)$kit[0]);
-						}else{
-							$this->api->entity->drop(new Position($player->entity->x, $player->entity->y, $player->entity->z, $player->level), BlockAPI::getItem($i->getID(), $i->getMetadata(), (int)$kit[0]));
-						}
+	public function initPlayer($data, $event){
+		if($this->data[$data->iusername]->get("newbie")){
+			switch($data->gamemode){
+				case SURVIVAL:
+					if(!array_key_exists($this->config["newbies"]["kit"], $this->config["kits"])){
+						break;
 					}
-				}
-			}else{
-				console("[Essentials] Can not find the ".$this->config["newbies"]["kit"].".");
+					$kits = $this->config["kits"][$this->config["newbies"]["kit"]];
+					foreach($kits as $kit){
+						$kit = explode(" ", $kit);
+						$item = BlockAPI::fromString(array_shift($kit));
+						$count = $kit[0];
+						$data->addItem($item->getID(), $item->getMetadata(), $count);
+					}
+					break;
+				case CREATIVE:
+					break;
+			}
+			$data->sendChat(str_replace(array("{DISPLAYNAME}", "{WORLDNAME}", "{GROUP}"), array($data->username, $data->level->getName(), ""), $this->config["newbies"]["message"]));
+			$this->data[$data->iusername]->set("newbie", false);
+		}
+		if($data->gamemode === CREATIVE){
+			$type = $this->api->ban->isOp($data->iusername) ? "op" : "default";
+			$creative = $this->config["creative-item"][$type];
+			foreach($creative as $item){
+				$item = explode(" ", $item);
+				$data->setSlot($item[0], BlockAPI::fromString($item[1]));
 			}
 		}
 	}
 	
 	public function defaultCommands($cmd, $params, $issuer, $alias){
 		$output = "";
+		if(!($issuer instanceof Player)){
+			break;
+		}
 		switch($cmd){
-			case "chat":
-				$s = implode(" ", $params);
-				if(trim($s) == ""){
-					$output .= "Usage: /chat <message ...>\n";
+			case "home":
+				if(!($issuer instanceof Player)){					
+					$output .= "Please run this command in-game.\n";
 					break;
 				}
-				if($this->data[$issuer->__get("iusername")]->get("mute") === true){
-					$output .= "You are muted.\n";
-				}else{
-					$chat = array_pop($params);
-					$this->api->chat->broadcast(str_replace(array("{DISPLAYNAME}", "{MESSAGE}", "{WORLDNAME}", "{GROUP}"), array($chat[0].$issuer->__get("username").$chat[1], $s, $issuer->level->getName(), $gm["users"]["group"]), $this->config["chat-format"]));
-				}
-				break;
-			case "home":
-				$home = $this->data[$issuer->__get("iusername")]->get("home");
-				if($home !== array()){
-					$name = $issuer->__get("iusername");
+				if($this->data[$issuer->iusername]->exists("home")){
+					$home = $this->data[$issuer->iusername]->get("home");
+					$name = $issuer->iusername;
 					if($home["world"] !== $issuer->level->getName()){
 						$this->api->player->teleport($name, "w:".$home["world"]);
 					}
 					$this->api->player->tppos($name, $home["x"], $home["y"], $home["z"]);
-					$output .= "teleported to your home.\n";
 				}else{
 					$output .= "You do not have a home.\n";
 				}
 				break;
 			case "sethome":
-				$this->data[$issuer->__get("iusername")]->set("home", array(
+				if(!($issuer instanceof Player)){					
+					$output .= "Please run this command in-game.\n";
+					break;
+				}
+				$this->data[$issuer->iusername]->set("home", array(
 					"world" => $issuer->level->getName(),
 					"x" => $issuer->entity->x,
 					"y" => $issuer->entity->y,
@@ -203,42 +255,27 @@ class Essentials implements Plugin{
 				$output .= "Your home has been saved.\n";
 				break;
 			case "delhome":
-				$spawn = $issuer->level->getSpawn();
-				$this->data[$issuer->__get(iusername)]->set("home", array());
-				$output .= "Your home has been deleted.\n";
-				break;
-			case "mute":
-				if($params[0] == ""){
-					$output .= "Usage: /mute <player>\n";
+				if(!($issuer instanceof Player)){					
+					$output .= "Please run this command in-game.\n";
 					break;
 				}
-				$target = $this->api->player->get($params[0]);
-				if($target !== false){
-					if($this->data[$target->__get("iusername")]->get("mute") === false){
-						$output .= $target->__get("username")." has been muted.\n";
-						$target->sendChat("Your mute has been turned on.");
-						$this->data[$target->__get("iusername")]->set("mute", true);
-					}else{
-						$output .= $target->__get("username")." has been unmuted.\n";
-						$target->sendChat("Your mute has been turned off.");
-						$this->data[$target->__get("iusername")]->set("mute", false);
-					}
-				}else{
-					$output .= "Player \"".$params[0]."\" does not exist.\n";
-				}
+				$spawn = $issuer->level->getSpawn();
+				$this->data[$issuer->iusername]->remove("home");
+				$output .= "Your home has been deleted.\n";
 				break;
 			case "back":
 				if(!($issuer instanceof Player)){					
 					$output .= "Please run this command in-game.\n";
 					break;
 				}
-				$backpos = $this->data[$issuer->__get("iusername")]->get("lastlocation");
-				if($backpos !== array()){
-					$name = $issuer->__get("iusername");
+				if($this->data[$issuer->iusername]->exists("lastlocation")){
+					$backpos = $this->data[$issuer->iusername]->get("lastlocation");
+					$name = $issuer->iusername;
 					if($backpos["world"] !== $issuer->level->getName()){
 						$this->api->player->teleport($name, "w:".$backpos["world"]);
 					}
 					$this->api->player->tppos($name, $backpos["x"], $backpos["y"], $backpos["z"]);
+					$output .= "Returning to previous location.\n";
 				}
 				break;
 			case "tree":
@@ -249,263 +286,127 @@ class Essentials implements Plugin{
 				switch(strtolower($params[0])){
 					case "redwood":
 						$meta = 1;
-						$output .= "Redwood tree spawned.\n";
 						break;
 					case "brich":
 						$meta = 2;
-						$output .= "Brich tree spawned.\n";
 						break;
 					case "tree":
 						$meta = 0;
-						$output .= "Tree spawned.\n";
 						break;
 					default:
-						$output .= "Usage: /tree <tree|brich|redwood>\n";
+						$output .= "Usage: /$cmd <tree|brich|redwood>\n";
 						break 2;
 				}
-				TreeObject::growTree($issuer->level, new Vector3 ((int)$issuer->entity->x, (int)$issuer->entity->y, (int)$issuer->entity->z), $meta);
+				TreeObject::growTree($issuer->level, new Vector3 (((int)$issuer->entity->x), ((int)$issuer->entity->y), ((int)$issuer->entity->z)), new Random(), $meta);
+				$output .= $this->getMessage("treeSpawned");
 				break;
 			case "setspawn":
+				if(!($issuer instanceof Player)){					
+					$output .= "Please run this command in-game.\n";
+					break;
+				}
+				$pos = new Vector3(((int)$issuer->entity->x + 0.5), ((int)$issuer->entity->y), ((int)$issuer->entity->z + 0.5));
+				$output .= "Spawn location set.\n";
+				$issuer->level->setSpawn($pos);
+				break;
+			case "mute":
+				if($params[0] == ""){
+					$output .= "Usage: /$cmd <player>\n";
+					break;
+				}
+				$target = $this->api->player->get($params[0]);
+				if($target === false){
+					$output .= $this->getMessage("playerNotFound");
+					break;
+				}
+				if($this->data[$target->iusername]->get("mute") === false){
+					$output .= "Player ".$target->username." muted.\n";
+					$target->sendChat($this->getMessage("playerMuted"));
+					$this->data[$target->iusername]->set("mute", true);
+				}else{
+					$output .= "Player ".$target->username." unmuted.\n";
+					$target->sendChat($this->getMessage("playerUnmuted"));
+					$this->data[$target->iusername]->set("mute", false);
+				}
+				break;
+			case "heal":
+				if(!($issuer instanceof Player) and $params[0] == ""){
+					$output .= "Usage: /$cmd <player>\n";
+					break;
+				}
+				if($params[0] != ""){
+					$player = $this->api->player->get($params[0]);
+					if($player === false){
+						$output .= $this->getMessage("playerNotFound");
+						break;
+					}
+				}
+				$this->api->entity->heal($player->eid, 20);
+				break;
+			case "clearinventory":
+				if(!($issuer instanceof Player) and $params[0] == ""){
+					$output .= "Usage: /$cmd <player> [item]\n";
+					break;
+				}
+				$player = $issuer;
+				if($params[0] != ""){
+					$player = $this->api->player->get($params[0]);
+					if($player === false){
+						$output .= $this->getMessage("playerNotFound");
+						break;
+					}
+				}
+				if($player->gamemode === CREATIVE){
+					$output .= "Player is in creative mode.\n";
+					break;
+				}
+				$item = false;
+				if($params[1] != ""){
+					$item = BlockAPI::fromString($params[1]);
+				}
+				foreach($player->inventory as $slot => $data){
+					if($item !== false and $item->getID() !== $data->getID()){
+						continue;
+					}
+					$player->setSlot($slot, BlockAPI::getItem(AIR, 0, 0));
+				}
+				break;
+			case "burn":
+				if($params[0] == "" or $params[1] == ""){
+					$output .= "Usage: /$cmd <player> <seconds>\n";
+					break;
+				}
+				$player = $this->api->player->get($params[0]);
+				$player->entity->fire = (int)$params[1];
+				break;
+			case "kickall":
+				if($params[0] == ""){
+					$output .= "Usage: /$cmd [reason]\n";
+					break;
+				}
+				foreach($this->api->player->online() as $username){
+					$this->api->ban->kick($username, $reason = $params[0]);
+				}
+				break;
+			case "killall":
+				if($params[0] == ""){
+					$output .= "Usage: /$cmd [reason]\n";
+					break;
+				}
+				foreach($this->api->player->online() as $username){
+					$target = $this->api->player->get($username);
+					$this->api->entity->harm($target->eid, 3000, $reason = $params[0]);
+				}
 				break;
 		}
 		return $output;
 	}
 	
-	public function createConfig(){
-		$this->path = $this->api->plugin->createConfig($this, array(
-			"chat-format" => "<{DISPLAYNAME}> {MESSAGE}",
-			"login-after-commands" => array(
-			),
-			"login-after-move" => true,
-			"blacklist" => array(
-				"placement" => '8,9,10,11,46,95',
-				"usage" => 327,
-				"break" => 7,
-			),
-			"kits" => array(
-				"tools" => array(
-				),
-			),
-			"newbies" => array(
-				"kit" => "tools",
-				"message" => "Use /help <page|command>",
-			),
-			"blocklog-displays" => 5,
-			"creative-item" => array(
-				COBBLESTONE.":0",
-				STONE_BRICKS.":0",
-				STONE_BRICKS.":1",
-				STONE_BRICKS.":2",
-				MOSS_STONE.":0",
-				WOODEN_PLANKS.":0",
-				BRICKS.":0",
-				STONE.":0",
-				DIRT.":0",
-				GRASS.":0",
-				CLAY_BLOCK.":0",
-				SANDSTONE.":0",
-				SANDSTONE.":1",
-				SANDSTONE.":2",
-				SAND.":0",
-				GRAVEL.":0",
-				TRUNK.":0",
-				TRUNK.":1",
-				TRUNK.":2",
-				NETHER_BRICKS.":0",
-				NETHERRACK.":0",
-				COBBLESTONE_STAIRS.":0",
-				WOODEN_STAIRS.":0",
-				BRICK_STAIRS.":0",
-				SANDSTONE_STAIRS.":0",
-				STONE_BRICK_STAIRS.":0",
-				NETHER_BRICKS_STAIRS.":0",
-				QUARTZ_STAIRS.":0",
-				SLAB.":0",
-				SLAB.":1",
-				SLAB.":2",
-				SLAB.":3",
-				SLAB.":4",
-				SLAB.":5",
-				QUARTZ_BLOCK.":0",
-				QUARTZ_BLOCK.":1",
-				QUARTZ_BLOCK.":2",
-				COAL_ORE.":0",
-				IRON_ORE.":0",
-				GOLD_ORE.":0",
-				DIAMOND_ORE.":0",
-				LAPIS_ORE.":0",
-				REDSTONE_ORE.":0",
-				GOLD_BLOCK.":0",
-				IRON_BLOCK.":0",
-				DIAMOND_BLOCK.":0",
-				LAPIS_BLOCK.":0",
-				OBSIDIAN.":0",
-				SNOW_BLOCK.":0",
-				GLASS.":0",
-				GLOWSTONE_BLOCK.":0",
-				NETHER_REACTOR.":0",
-				WOOL.":0",
-				WOOL.":7",
-				WOOL.":6",
-				WOOL.":5",
-				WOOL.":4",
-				WOOL.":3",
-				WOOL.":2",
-				WOOL.":1",
-				WOOL.":15",
-				WOOL.":14",
-				WOOL.":13",
-				WOOL.":12",
-				WOOL.":11",
-				WOOL.":10",
-				WOOL.":9",
-				WOOL.":8",
-				LADDER.":0",
-				TORCH.":0",
-				GLASS_PANE.":0",
-				WOODEN_DOOR.":0",
-				TRAPDOOR.":0",
-				FENCE.":0",
-				FENCE_GATE.":0",
-				BED.":0",
-				BOOKSHELF.":0",
-				PAINTING.":0",
-				WORKBENCH.":0",
-				STONECUTTER.":0",
-				CHEST.":0",
-				FURNACE.":0",
-				TNT.":0",
-				DANDELION.":0",
-				CYAN_FLOWER.":0",
-				BROWN_MUSHROOM.":0",
-				RED_MUSHROOM.":0",
-				CACTUS.":0",
-				MELON_BLOCK.":0",
-				SUGARCANE.":0",
-				SAPLING.":0",
-				SAPLING.":1",
-				SAPLING.":2",
-				LEAVES.":0",
-				LEAVES.":1",
-				LEAVES.":2",
-				SEEDS.":0",
-				MELON_SEEDS.":0",
-				DYE.":15",
-				IRON_HOE.":0",
-				IRON_SWORD.":0",
-				STICK.":0",
-				SIGN.":0",
-			),
-			"creative-item-op" => array(
-				COBBLESTONE.":0",
-				STONE_BRICKS.":0",
-				STONE_BRICKS.":1",
-				STONE_BRICKS.":2",
-				MOSS_STONE.":0",
-				WOODEN_PLANKS.":0",
-				BRICKS.":0",
-				STONE.":0",
-				DIRT.":0",
-				GRASS.":0",
-				CLAY_BLOCK.":0",
-				SANDSTONE.":0",
-				SANDSTONE.":1",
-				SANDSTONE.":2",
-				SAND.":0",
-				GRAVEL.":0",
-				TRUNK.":0",
-				TRUNK.":1",
-				TRUNK.":2",
-				NETHER_BRICKS.":0",
-				NETHERRACK.":0",
-				COBBLESTONE_STAIRS.":0",
-				WOODEN_STAIRS.":0",
-				BRICK_STAIRS.":0",
-				SANDSTONE_STAIRS.":0",
-				STONE_BRICK_STAIRS.":0",
-				NETHER_BRICKS_STAIRS.":0",
-				QUARTZ_STAIRS.":0",
-				SLAB.":0",
-				SLAB.":1",
-				SLAB.":2",
-				SLAB.":3",
-				SLAB.":4",
-				SLAB.":5",
-				QUARTZ_BLOCK.":0",
-				QUARTZ_BLOCK.":1",
-				QUARTZ_BLOCK.":2",
-				COAL_ORE.":0",
-				IRON_ORE.":0",
-				GOLD_ORE.":0",
-				DIAMOND_ORE.":0",
-				LAPIS_ORE.":0",
-				REDSTONE_ORE.":0",
-				GOLD_BLOCK.":0",
-				IRON_BLOCK.":0",
-				DIAMOND_BLOCK.":0",
-				LAPIS_BLOCK.":0",
-				OBSIDIAN.":0",
-				SNOW_BLOCK.":0",
-				GLASS.":0",
-				GLOWSTONE_BLOCK.":0",
-				NETHER_REACTOR.":0",
-				WOOL.":0",
-				WOOL.":7",
-				WOOL.":6",
-				WOOL.":5",
-				WOOL.":4",
-				WOOL.":3",
-				WOOL.":2",
-				WOOL.":1",
-				WOOL.":15",
-				WOOL.":14",
-				WOOL.":13",
-				WOOL.":12",
-				WOOL.":11",
-				WOOL.":10",
-				WOOL.":9",
-				WOOL.":8",
-				LADDER.":0",
-				TORCH.":0",
-				GLASS_PANE.":0",
-				WOODEN_DOOR.":0",
-				TRAPDOOR.":0",
-				FENCE.":0",
-				FENCE_GATE.":0",
-				BED.":0",
-				BOOKSHELF.":0",
-				PAINTING.":0",
-				WORKBENCH.":0",
-				STONECUTTER.":0",
-				CHEST.":0",
-				FURNACE.":0",
-				TNT.":0",
-				DANDELION.":0",
-				CYAN_FLOWER.":0",
-				BROWN_MUSHROOM.":0",
-				RED_MUSHROOM.":0",
-				CACTUS.":0",
-				MELON_BLOCK.":0",
-				SUGARCANE.":0",
-				SAPLING.":0",
-				SAPLING.":1",
-				SAPLING.":2",
-				LEAVES.":0",
-				LEAVES.":1",
-				LEAVES.":2",
-				SEEDS.":0",
-				MELON_SEEDS.":0",
-				DYE.":15",
-				IRON_HOE.":0",
-				IRON_SWORD.":0",
-				STICK.":0",
-				SIGN.":0",
-			),
-		));
-		$this->reloadConfig();
-	}
-	
-	public function reloadConfig(){
-		$this->config = $this->api->plugin->readYAML($this->path."config.yml");
+	public function getMessage($msg, $params = array("", "", "", "")){
+		$msgs = array_merge($this->lang->get("Default"), $this->lang->get("Essentials"));
+		if(!isset($msgs[$msg])){
+			return $this->getMessage("noMessages", array($msg));
+		}
+		return str_replace(array("%1", "%2", "%3", "%4"), array($params[0], $params[1], $params[2], $params[3]), $msgs[$msg])."\n";
 	}
 }

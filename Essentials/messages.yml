@@ -1,0 +1,22 @@
+----
+Default:
+    fileNotFound: '\"%1\" file not found.'
+    playerNotFound: 'Player not found.'
+    noMessages: 'Undefined message: %1'
+Essentials:
+    treeSpawned: 'Tree spawned.'
+    playerMuted: 'You have been muted'
+    playerUnmuted: 'You have been unmuted'
+Login:
+    unregister: 'Registration has been canceled successfully.'
+    logout: 'Have been successfully logged out.'
+    register: 'Has been successfully registered.'
+    login: 'Login was successful.'
+    changepassword: 'Password has been changed successfully.'
+    notRegistered: 'You are not registered!'
+    notLogged: 'You are not logged!'
+    notPasswordMatch: 'Passwords do not match.'
+    alreadyLogged: 'You are already logged in.'
+    alreadyRegistered: 'You have already registered.'
+    enterPasswordAgain: 'Please enter the password again.'
+    passwordIncorrect: 'The password is too long or too short.'

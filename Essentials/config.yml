@@ -1,0 +1,49 @@
+---
+login:
+  allow-non-loggedIn:
+    chat: false
+    commands:
+      - help
+      - list
+      - login
+      - logout
+      - register
+      - unregister
+      - changepassword
+    move: false
+  kick-on-wrong-password:
+    enable: false
+    count: 5
+chat-format: '<{DISPLAYNAME}> {MESSAGE}'
+blacklist:
+  placement: 8,9,10,11,46
+  usage: 259
+  break: 7
+kits:
+  tools:
+    - 256 1
+    - 257 1
+    - 258 1
+    - 267 1
+newbies:
+  kit: tools
+  message: 'Welcome {DISPLAYNAME} to the server!'
+creative-item:
+  op:
+    - 0 8
+    - 1 10
+  default: [ ]
+player-commands:
+  - help
+  - list
+  - tp
+  - back
+  - logout
+  - changepassword
+  - unregister
+  - clearinventory
+  - setspawnpoint
+  - sethome
+  - delhome
+  - home
+  - spawn

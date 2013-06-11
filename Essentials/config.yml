@@ -17,7 +17,7 @@ login:
 chat-format: '<{DISPLAYNAME}> {MESSAGE}'
 blacklist:
   placement: 8,9,10,11,46
-  usage: 259
+  usage: '259,325:8,325:10'
   break: 7
 kits:
   tools:

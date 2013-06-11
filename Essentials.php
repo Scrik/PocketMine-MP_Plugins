@@ -49,13 +49,11 @@ class Essentials implements Plugin{
 		"deop",
 		"ping",
 		"sudo",
-		"status",
 		"difficulty",
-		"stop",
 		"defaultgamemode",
 		"help",
 		"time",
-		"list",
+		"list", // end
 		
 		"login",
 		"logout",

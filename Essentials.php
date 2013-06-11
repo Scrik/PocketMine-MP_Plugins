@@ -222,7 +222,7 @@ class Essentials implements Plugin{
 				}
 				return false;
 			case "player.respawn":
-				$data["player"]->sendChat($this->getMessage("backAfterDeath"));
+				$data->sendChat($this->getMessage("backAfterDeath"));
 				break;
 			case "player.teleport":
 				$this->data[$data["player"]->iusername]->set("lastlocation", array(
@@ -438,13 +438,13 @@ class Essentials implements Plugin{
 			case "tp":
 				if($this->isAuthorized($issuer, $cmd, "others") === false){
 					if($params[1] != ""){
-						$output .= "";
+						$output .= "You don't have permission to use this command.\n";
 						break;
 					}
 				}
 				if($issuer instanceof Player and $params[0] != "" and strpos($params[0], "w:") !== false){
 					if($this->isAuthorized($issuer, $cmd, "worlds.".substr($params[0], 2)) === false){
-						$output .= "";
+						$output .= "You don't have permission to use this command.\n";
 						break;
 					}
 				}

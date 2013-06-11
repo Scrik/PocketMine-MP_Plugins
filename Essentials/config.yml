@@ -35,6 +35,7 @@ creative-item:
   default: [ ]
 player-commands:
   - help
+  - tell
   - list
   - tp
   - back
@@ -47,3 +48,4 @@ player-commands:
   - delhome
   - home
   - spawn
+  - gamemode

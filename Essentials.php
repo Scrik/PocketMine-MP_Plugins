@@ -7,7 +7,7 @@ description=Essentials
 version=0.0.1
 author=KsyMC
 class=Essentials
-apiversion=8
+apiversion=9
 */
 
 /*
@@ -27,13 +27,36 @@ class Essentials implements Plugin{
 		"delhome",
 		"mute",
 		"back",
-		"heal",
 		"tree",
-		"clearinventory",
 		"setspawn",
 		"burn",
 		"kickall",
 		"killall",
+		"heal",
+		"clearinventory",
+		"gamemode",
+		"tp",
+		"spawn",
+		"tell", // 추가 시작 필요
+		"me",
+		"say",
+		"give",
+		"banip",
+		"ban",
+		"kick",
+		"whitelist",
+		"op",
+		"deop",
+		"ping",
+		"sudo",
+		"status",
+		"difficulty",
+		"stop",
+		"defaultgamemode",
+		"help",
+		"time",
+		"list",
+		
 		"login",
 		"logout",
 		"register",
@@ -50,9 +73,9 @@ class Essentials implements Plugin{
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("player.quit", array($this, "handler"), 5);
 		$this->api->addHandler("player.chat", array($this, "handler"), 5);
-		$this->api->addHandler("player.death", array($this, "handler"), 5);
 		$this->api->addHandler("player.teleport", array($this, "handler"), 5);
 		$this->api->addHandler("player.spawn", array($this, "initPlayer"), 5);
+		$this->api->addHandler("player.respawn", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.break", array($this, "handler"), 5);
 		$this->api->addHandler("console.command", array($this, "permissionsCheck"), 5);
 		$this->api->addHandler("groupmanager.permission.check", array($this, "permissionsCheck"), 5);
@@ -62,13 +85,16 @@ class Essentials implements Plugin{
 		$this->api->console->register("delhome", "", array($this, "defaultCommands"));
 		$this->api->console->register("mute", "<player>", array($this, "defaultCommands"));
 		$this->api->console->register("back", "", array($this, "defaultCommands"));
-		$this->api->console->register("heal", "[player]", array($this, "defaultCommands"));
 		$this->api->console->register("tree", "<tree|brich|redwood>", array($this, "defaultCommands"));
-		$this->api->console->register("clearinventory", "[player] [item]", array($this, "defaultCommands"));
 		$this->api->console->register("setspawn", "", array($this, "defaultCommands"));
 		$this->api->console->register("burn", "<player> <seconds>", array($this, "defaultCommands"));
 		$this->api->console->register("kickall", "[reason]", array($this, "defaultCommands"));
 		$this->api->console->register("killall", "[reason]", array($this, "defaultCommands"));
+		$this->api->console->register("heal", "[player]", array($this, "defaultCommands"));
+		$this->api->console->register("clearinventory", "[player] [item]", array($this, "defaultCommands"));
+		$this->api->console->register("gamemode", "<mode> [player]", array($this, "defaultCommands"));
+		$this->api->console->register("tp", "[target player] <destination player|w:world> OR /tp [target player] <x> <y> <z>", array($this, "defaultCommands"));
+		$this->api->console->register("spawn", "[player]", array($this, "defaultCommands"));
 		$this->readConfig();
 	}
 	
@@ -85,6 +111,7 @@ class Essentials implements Plugin{
 					"chat" => false,
 					"commands" => array(),
 					"move" => true,
+					"damage" => false,
 				),
 				"kick-on-wrong-password" => array(
 					"enable" => false,
@@ -118,33 +145,59 @@ class Essentials implements Plugin{
 	
 	public function permissionsCheck($data, $event){
 		switch($event){
-			case "groupmanager.permission.check":
-				if(in_array(substr($data["permission"], 11), $this->config["player-commands"])){
+			case "groupmanager.permission.check": // GroupManager
+				if($this->api->ban->isOp($data["issuer"]->username) or in_array(substr($data["permission"], 11), $this->config["player-commands"])){
 					return true;
 				}
 				return false;
 			case "console.command":
-				if(!($data["issuer"] instanceof Player) or $this->api->ban->isOp($data["issuer"]->iusername)){
+				if(!($data["issuer"] instanceof Player)){
+					return;
+				}
+				//console("[INFO] \x1b[33m".$issuer->username."\x1b[0m issued command: /".$cmd." ".implode(" ", $params));
+				if(in_array($data["cmd"], self::$cmds) and $this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => "essentials.".$data["cmd"])) !== false){
 					return true;
 				}
-				if($data["cmd"] === "heal" or $data["cmd"] === "clearinventory"){
-					if($this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => isset($data["parameters"][0]) ? "essentials.".$data["cmd"].".other" : "essentials.".$data["cmd"])) !== false){
-						return true;
-					}
-					return false;
-				}elseif($data["cmd"] === "unregister"){
-					if($this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => isset($data["parameters"][1]) ? "essentials.".$data["cmd"].".other" : "essentials.".$data["cmd"])) !== false){
-						return true;
-					}
-					return false;
-				}elseif(in_array($data["cmd"], self::$cmds)){// All essentials commands
-					if($this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => "essentials.".$data["cmd"])) !== false){
-						return true;
-					}
-					return false;
-				}
-				break;
+				return false;
 		}
+	}
+	
+	public function initPlayer($data, $event){
+		if($this->data[$data->iusername]->get("newbie")){
+			switch($data->gamemode){
+				case SURVIVAL:
+					if(!array_key_exists($this->config["newbies"]["kit"], $this->config["kits"])){
+						break;
+					}
+					$kits = $this->config["kits"][$this->config["newbies"]["kit"]];
+					foreach($kits as $kit){
+						$kit = explode(" ", $kit);
+						$item = BlockAPI::fromString(array_shift($kit));
+						$count = $kit[0];
+						$data->addItem($item->getID(), $item->getMetadata(), $count);
+					}
+					break;
+				case CREATIVE:
+					break;
+			}
+			$data->sendChat(str_replace(array("{DISPLAYNAME}", "{WORLDNAME}"), array($data->username, $data->level->getName()), $this->config["newbies"]["message"]));
+			$this->data[$data->iusername]->set("newbie", false);
+		}
+		if($data->gamemode === CREATIVE){
+			$type = $this->api->ban->isOp($data->iusername) ? "op" : "default";
+			$creative = $this->config["creative-item"][$type];
+			foreach($creative as $item){
+				$item = explode(" ", $item);
+				$data->setSlot($item[0], BlockAPI::fromString($item[1]));
+			}
+		}
+	}
+	
+	public function isAuthorized($issuer, $cmd, $permission){
+		if(!($issuer instanceof Player)){
+			return true;
+		}
+		return $this->api->dhandle("groupmanager.permission.check", array("issuer" => $issuer, "permission" => "essentials.$cmd.$permission"));
 	}
 	
 	public function handler(&$data, $event){
@@ -168,8 +221,8 @@ class Essentials implements Plugin{
 					$this->api->chat->broadcast($data["message"]);
 				}
 				return false;
-			case "player.death":
-				$data["player"]->sendChat("Use the /back command to return to your death point.");
+			case "player.respawn":
+				$data["player"]->sendChat($this->getMessage("backAfterDeath"));
 				break;
 			case "player.teleport":
 				$this->data[$data["player"]->iusername]->set("lastlocation", array(
@@ -188,45 +241,11 @@ class Essentials implements Plugin{
 		}
 	}
 	
-	public function initPlayer($data, $event){
-		if($this->data[$data->iusername]->get("newbie")){
-			switch($data->gamemode){
-				case SURVIVAL:
-					if(!array_key_exists($this->config["newbies"]["kit"], $this->config["kits"])){
-						break;
-					}
-					$kits = $this->config["kits"][$this->config["newbies"]["kit"]];
-					foreach($kits as $kit){
-						$kit = explode(" ", $kit);
-						$item = BlockAPI::fromString(array_shift($kit));
-						$count = $kit[0];
-						$data->addItem($item->getID(), $item->getMetadata(), $count);
-					}
-					break;
-				case CREATIVE:
-					break;
-			}
-			$data->sendChat(str_replace(array("{DISPLAYNAME}", "{WORLDNAME}", "{GROUP}"), array($data->username, $data->level->getName(), ""), $this->config["newbies"]["message"]));
-			$this->data[$data->iusername]->set("newbie", false);
-		}
-		if($data->gamemode === CREATIVE){
-			$type = $this->api->ban->isOp($data->iusername) ? "op" : "default";
-			$creative = $this->config["creative-item"][$type];
-			foreach($creative as $item){
-				$item = explode(" ", $item);
-				$data->setSlot($item[0], BlockAPI::fromString($item[1]));
-			}
-		}
-	}
-	
 	public function defaultCommands($cmd, $params, $issuer, $alias){
 		$output = "";
-		if(!($issuer instanceof Player)){
-			break;
-		}
 		switch($cmd){
 			case "home":
-				if(!($issuer instanceof Player)){					
+				if(!($issuer instanceof Player)){
 					$output .= "Please run this command in-game.\n";
 					break;
 				}
@@ -242,7 +261,7 @@ class Essentials implements Plugin{
 				}
 				break;
 			case "sethome":
-				if(!($issuer instanceof Player)){					
+				if(!($issuer instanceof Player)){
 					$output .= "Please run this command in-game.\n";
 					break;
 				}
@@ -255,7 +274,7 @@ class Essentials implements Plugin{
 				$output .= "Your home has been saved.\n";
 				break;
 			case "delhome":
-				if(!($issuer instanceof Player)){					
+				if(!($issuer instanceof Player)){
 					$output .= "Please run this command in-game.\n";
 					break;
 				}
@@ -264,7 +283,7 @@ class Essentials implements Plugin{
 				$output .= "Your home has been deleted.\n";
 				break;
 			case "back":
-				if(!($issuer instanceof Player)){					
+				if(!($issuer instanceof Player)){
 					$output .= "Please run this command in-game.\n";
 					break;
 				}
@@ -275,11 +294,11 @@ class Essentials implements Plugin{
 						$this->api->player->teleport($name, "w:".$backpos["world"]);
 					}
 					$this->api->player->tppos($name, $backpos["x"], $backpos["y"], $backpos["z"]);
-					$output .= "Returning to previous location.\n";
+					$output .= $this->getMessage("backUsageMsg");
 				}
 				break;
 			case "tree":
-				if(!($issuer instanceof Player)){					
+				if(!($issuer instanceof Player)){
 					$output .= "Please run this command in-game.\n";
 					break;
 				}
@@ -301,7 +320,7 @@ class Essentials implements Plugin{
 				$output .= $this->getMessage("treeSpawned");
 				break;
 			case "setspawn":
-				if(!($issuer instanceof Player)){					
+				if(!($issuer instanceof Player)){
 					$output .= "Please run this command in-game.\n";
 					break;
 				}
@@ -329,80 +348,125 @@ class Essentials implements Plugin{
 					$this->data[$target->iusername]->set("mute", false);
 				}
 				break;
+			case "burn":
+				if($params[0] == "" or $params[1] == ""){
+					$output .= "Usage: /$cmd <player> <seconds>\n";
+					break;
+				}
+				$seconds = (int)$params[1];
+				$player = $this->api->player->get($params[0]);
+				if($player === false){
+					$output .= $this->getMessage("playerNotFound");
+					break;
+				}
+				$player->entity->fire = $seconds * 20;
+				$player->entity->updateMetadata();
+				$output .= $this->getMessage("burnMsg", array($player->username, $seconds));
+				break;
+			case "kickall":
+				$reason = "";
+				if($params[0] != ""){
+					$reason = $params[0];
+				}
+				foreach($this->api->player->online() as $username){
+					$this->api->ban->kick($username, $reason);
+				}
+				break;
+			case "killall":
+				$reason = "";
+				if($params[0] != ""){
+					$reason = $params[0];
+				}
+				foreach($this->api->player->online() as $username){
+					$target = $this->api->player->get($username);
+					$this->api->entity->harm($target->eid, 3000, $reason);
+				}
+				break;
 			case "heal":
 				if(!($issuer instanceof Player) and $params[0] == ""){
 					$output .= "Usage: /$cmd <player>\n";
 					break;
 				}
-				if($params[0] != ""){
-					$player = $this->api->player->get($params[0]);
-					if($player === false){
-						$output .= $this->getMessage("playerNotFound");
-						break;
+				if($this->isAuthorized($issuer, $cmd, "others") !== false){
+					if($params[0] != ""){
+						$issuer = $this->api->player->get($params[0]);
+						if($issuer === false){
+							$output .= $this->getMessage("playerNotFound");
+							break;
+						}
 					}
 				}
-				$this->api->entity->heal($player->eid, 20);
+				$this->api->entity->heal($issuer->eid, 20);
 				break;
 			case "clearinventory":
 				if(!($issuer instanceof Player) and $params[0] == ""){
 					$output .= "Usage: /$cmd <player> [item]\n";
 					break;
 				}
-				$player = $issuer;
-				if($params[0] != ""){
-					$player = $this->api->player->get($params[0]);
-					if($player === false){
-						$output .= $this->getMessage("playerNotFound");
-						break;
+				if($this->isAuthorized($issuer, $cmd, "others") !== false){
+					if($params[0] != ""){
+						$issuer = $this->api->player->get($params[0]);
+						if($issuer === false){
+							$output .= $this->getMessage("playerNotFound");
+							break;
+						}
 					}
 				}
-				if($player->gamemode === CREATIVE){
+				if($issuer->gamemode === CREATIVE){
 					$output .= "Player is in creative mode.\n";
 					break;
 				}
-				$item = false;
 				if($params[1] != ""){
 					$item = BlockAPI::fromString($params[1]);
 				}
-				foreach($player->inventory as $slot => $data){
-					if($item !== false and $item->getID() !== $data->getID()){
+				foreach($issuer->inventory as $slot => $data){
+					if(isset($item) and $item->getID() !== $data->getID()){
 						continue;
 					}
-					$player->setSlot($slot, BlockAPI::getItem(AIR, 0, 0));
+					$issuer->setSlot($slot, BlockAPI::getItem(AIR, 0, 0));
 				}
+				$output .= $params[0] == "" ? $this->getMessage("inventoryCleared") : $this->getMessage("inventoryClearedOthers", array($issuer->username));
 				break;
-			case "burn":
-				if($params[0] == "" or $params[1] == ""){
-					$output .= "Usage: /$cmd <player> <seconds>\n";
-					break;
+			case "gamemode":
+				if($this->isAuthorized($issuer, $cmd, "others") === false){
+					if($params[1] != ""){
+						unset($params[1]);
+					}
 				}
-				$player = $this->api->player->get($params[0]);
-				$player->entity->fire = (int)$params[1];
+				$output .= $this->api->player->commandHandler($cmd, $params, $issuer, $alias);
 				break;
-			case "kickall":
-				if($params[0] == ""){
-					$output .= "Usage: /$cmd [reason]\n";
-					break;
+			case "tp":
+				if($this->isAuthorized($issuer, $cmd, "others") === false){
+					if($params[1] != ""){
+						$output .= "";
+						break;
+					}
 				}
-				foreach($this->api->player->online() as $username){
-					$this->api->ban->kick($username, $reason = $params[0]);
+				if($issuer instanceof Player and $params[0] != "" and strpos($params[0], "w:") !== false){
+					if($this->isAuthorized($issuer, $cmd, "worlds.".substr($params[0], 2)) === false){
+						$output .= "";
+						break;
+					}
 				}
+				$output .= $this->api->player->commandHandler($cmd, $params, $issuer, $alias);
 				break;
-			case "killall":
-				if($params[0] == ""){
-					$output .= "Usage: /$cmd [reason]\n";
-					break;
+			case "spawn":
+				if($this->isAuthorized($issuer, $cmd, "others") !== false){
+					if($params[0] != ""){
+						$issuer = $this->api->player->get($params[0]);
+						if($issuer === false){
+							$output .= $this->getMessage("playerNotFound");
+							break;
+						}
+					}
 				}
-				foreach($this->api->player->online() as $username){
-					$target = $this->api->player->get($username);
-					$this->api->entity->harm($target->eid, 3000, $reason = $params[0]);
-				}
+				$output .= $this->api->player->commandHandler($cmd, $params, $issuer, $alias);
 				break;
 		}
 		return $output;
 	}
 	
-	public function getMessage($msg, $params = array("", "", "", "")){
+	public function getMessage($msg, $params = array("%1", "%2", "%3", "%4")){
 		$msgs = array_merge($this->lang->get("Default"), $this->lang->get("Essentials"));
 		if(!isset($msgs[$msg])){
 			return $this->getMessage("noMessages", array($msg));

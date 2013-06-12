@@ -4,7 +4,7 @@
 __PocketMine Plugin__
 name=EssentialsLogin
 description=EssentialsLogin
-version=1.0
+version=1.1 dev
 author=KsyMC
 class=EssentialsLogin
 apiversion=9
@@ -295,6 +295,10 @@ class EssentialsLogin implements Plugin{
 					$output .= $this->getMessage("notRegistered");
 					break;
 				}
+				if($this->getPlayerStatus($issuer) === "logout"){
+					$output .= $this->getMessage("notLogged");
+					break;
+				}
 				$realpassword = $this->getPlayerPassword($issuer);
 				if(!$this->comparePassword($oldpassword, $realpassword)){
 					$output .= $this->getMessage("enterPasswordAgain");
@@ -318,7 +322,7 @@ class EssentialsLogin implements Plugin{
 				}
 				$realpassword = $this->getPlayerPassword($issuer);
 				if(!$this->comparePassword($password, $realpassword)){
-					$output .= $this->getMessage("notPasswordMatch");
+					$output .= $this->getMessage("notPasswordMatch", array($this->forget[$issuer->iusername], $this->config["login"]["kick-on-wrong-password"]["count"]));
 					break;
 				}
 				$this->setPlayerPassword($issuer, false, true);

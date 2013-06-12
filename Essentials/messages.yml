@@ -20,7 +20,7 @@ Login:
     changepassword: 'Password has been changed successfully.'
     notRegistered: 'You are not registered!'
     notLogged: 'You are not logged!'
-    notPasswordMatch: 'Passwords do not match.'
+    notPasswordMatch: 'Passwords do not match. %1/%2'
     alreadyLogged: 'You are already logged in.'
     alreadyRegistered: 'You have already registered.'
     enterPasswordAgain: 'Please enter the password again.'

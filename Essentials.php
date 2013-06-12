@@ -20,7 +20,7 @@ Small Changelog
 */
 
 class Essentials implements Plugin{
-	private $api, $lang;
+	private $api, $lang, $groupmanager;
 	private static $cmds = array(
 		"home",
 		"sethome",
@@ -64,6 +64,7 @@ class Essentials implements Plugin{
 	
 	public function __construct(ServerAPI $api, $server = false){
 		$this->api = $api;
+		$this->groupmanager = false;
 	}
 	
 	public function init(){
@@ -93,6 +94,9 @@ class Essentials implements Plugin{
 		$this->api->console->register("gamemode", "<mode> [player]", array($this, "defaultCommands"));
 		$this->api->console->register("tp", "[target player] <destination player|w:world> OR /tp [target player] <x> <y> <z>", array($this, "defaultCommands"));
 		$this->api->console->register("spawn", "[player]", array($this, "defaultCommands"));
+		if(file_exists(DATA_PATH."/plugins/GroupManager.php")){
+			$this->groupmanager = true;
+		}
 		$this->readConfig();
 	}
 	
@@ -100,9 +104,6 @@ class Essentials implements Plugin{
 	}
 	
 	public function readConfig(){
-		if(is_dir("./plugins/Essentials/userdata/") === false){
-			mkdir("./plugins/Essentials/userdata/", 0777, true);
-		}
 		$this->path = $this->api->plugin->createConfig($this, array(
 			"login" => array(
 				"allow-non-loggedIn" => array(
@@ -138,25 +139,28 @@ class Essentials implements Plugin{
 		}else{
 			$this->lang = new Config($this->path."messages.yml", CONFIG_YAML);
 		}
+		if(is_dir("./plugins/Essentials/userdata/") === false){
+			mkdir("./plugins/Essentials/userdata/");
+		}
 		$this->config = $this->api->plugin->readYAML($this->path."config.yml");
 	}
 	
 	public function permissionsCheck($data, $event){
 		switch($event){
 			case "groupmanager.permission.check": // GroupManager
+				console($data["permission"]);
 				if($this->api->ban->isOp($data["issuer"]->username) or in_array(substr($data["permission"], 11), $this->config["player-commands"])){
 					return true;
 				}
 				return false;
 			case "console.command":
-				if(!($data["issuer"] instanceof Player)){
-					return;
-				}
 				//console("[INFO] \x1b[33m".$issuer->username."\x1b[0m issued command: /".$cmd." ".implode(" ", $params));
-				if(in_array($data["cmd"], self::$cmds) and $this->api->dhandle("groupmanager.permission.check", array("issuer" => $data["issuer"], "permission" => "essentials.".$data["cmd"])) !== false){
-					return true;
+				if($this->groupmanager === true and in_array($data["cmd"], self::$cmds)){
+					return $this->isAuthorized($data["issuer"],  $data["cmd"]);
+				}elseif($this->groupmanager === false){
+					return $this->isAuthorized($data["issuer"],  $data["cmd"]);
 				}
-				return false;
+				break;
 		}
 	}
 	
@@ -191,11 +195,11 @@ class Essentials implements Plugin{
 		}
 	}
 	
-	public function isAuthorized($issuer, $cmd, $permission){
+	public function isAuthorized($issuer, $cmd, $permission = ""){
 		if(!($issuer instanceof Player)){
 			return true;
 		}
-		return $this->api->dhandle("groupmanager.permission.check", array("issuer" => $issuer, "permission" => "essentials.$cmd.$permission"));
+		return $this->api->dhandle("groupmanager.permission.check", array("issuer" => $issuer, "permission" => "essentials.$cmd".($permission != "" ? ".$permission" : "")));
 	}
 	
 	public function handler(&$data, $event){

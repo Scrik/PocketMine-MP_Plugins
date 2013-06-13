@@ -4,7 +4,7 @@
 __PocketMine Plugin__
 name=Essentials
 description=Essentials
-version=1.0.1
+version=1.1 dev
 author=KsyMC
 class=Essentials
 apiversion=9

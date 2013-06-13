@@ -4,7 +4,7 @@
 __PocketMine Plugin__
 name=Essentials
 description=Essentials
-version=1.1 dev
+version=1.0.1
 author=KsyMC
 class=Essentials
 apiversion=9
@@ -54,7 +54,6 @@ class Essentials implements Plugin{
 		"help",
 		"time",
 		"list", // end
-		
 		"login",
 		"logout",
 		"register",
@@ -148,19 +147,19 @@ class Essentials implements Plugin{
 	public function permissionsCheck($data, $event){
 		switch($event){
 			case "groupmanager.permission.check": // GroupManager
-				console($data["permission"]);
 				if($this->api->ban->isOp($data["issuer"]->username) or in_array(substr($data["permission"], 11), $this->config["player-commands"])){
 					return true;
 				}
 				return false;
 			case "console.command":
 				//console("[INFO] \x1b[33m".$issuer->username."\x1b[0m issued command: /".$cmd." ".implode(" ", $params));
-				if($this->groupmanager === true and in_array($data["cmd"], self::$cmds)){
-					return $this->isAuthorized($data["issuer"],  $data["cmd"]);
-				}elseif($this->groupmanager === false){
-					return $this->isAuthorized($data["issuer"],  $data["cmd"]);
+				if($this->groupmanager === true and !in_array($data["cmd"], self::$cmds)){
+					break;
 				}
-				break;
+				if($this->isAuthorized($data["issuer"],  $data["cmd"])){
+					return;
+				}
+				return false;
 		}
 	}
 	

@@ -4,7 +4,7 @@
 __PocketMine Plugin__
 name=EssentialsProtect
 description=EssentialsProtect
-version=1.1 dev
+version=1.0.2
 author=KsyMC
 class=EssentialsProtect
 apiversion=9

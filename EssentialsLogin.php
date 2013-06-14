@@ -4,7 +4,7 @@
 __PocketMine Plugin__
 name=EssentialsLogin
 description=EssentialsLogin
-version=1.1 dev
+version=1.0.2
 author=KsyMC
 class=EssentialsLogin
 apiversion=9
@@ -33,8 +33,8 @@ class EssentialsLogin implements Plugin{
 		$this->api->addHandler("player.chat", array($this, "permissionsCheck"), 6);
 		$this->api->addHandler("player.move", array($this, "permissionsCheck"), 6);
 		$this->api->addHandler("player.interact", array($this, "permissionsCheck"), 6);
+		$this->api->addHandler("console.check", array($this, "permissionsCheck"), 6);
 		$this->api->addHandler("player.block.touch", array($this, "permissionsCheck"), 6);
-		$this->api->addHandler("console.command", array($this, "permissionsCheck"), 6);
 		$this->api->addHandler("entity.health.change", array($this, "permissionsCheck"), 6);
 		
 		$this->api->console->register("register", "<password> <password>", array($this, "commandHandler"));
@@ -75,8 +75,7 @@ class EssentialsLogin implements Plugin{
 		if(!($player instanceof Player)){
 			$data = $player;
 			switch($event){
-				case "console.command":
-					if(!($data["issuer"] instanceof Player)) return;
+				case "console.check":
 					$player = $data["issuer"];
 					break;
 				case "player.move":
@@ -87,7 +86,7 @@ class EssentialsLogin implements Plugin{
 					$player = $data["player"];
 					break;
 				case "entity.health.change":
-					if(!($data["entity"]->player instanceof Player)) return;
+					if(!($data["entity"]->player instanceof Player)) return true;
 				case "player.interact":
 					$player = $data["entity"]->player;
 					break;
@@ -96,7 +95,7 @@ class EssentialsLogin implements Plugin{
 		if($this->getPlayerStatus($player) === "logout"){
 			switch($event){
 				case "player.move":
-					if($this->config["login"]["allow-non-loggedIn"]["move"]){
+					if($this->config["login"]["allow-non-loggedIn"]["moving"]){
 						break;
 					}
 					if($player->lastCorrect->x !== $player->entity->x or $player->lastCorrect->y !== $player->entity->y or $player->lastCorrect->z !== $player->entity->z){
@@ -110,7 +109,7 @@ class EssentialsLogin implements Plugin{
 						}
 					}
 					break;
-				case "console.command":
+				case "console.check":
 					if(in_array($data["cmd"], $this->config["login"]["allow-non-loggedIn"]["commands"])){
 						return true;
 					}

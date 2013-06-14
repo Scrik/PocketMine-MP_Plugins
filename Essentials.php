@@ -4,7 +4,7 @@
 __PocketMine Plugin__
 name=Essentials
 description=Essentials
-version=1.1 dev
+version=1.0.2
 author=KsyMC
 class=Essentials
 apiversion=9
@@ -52,8 +52,8 @@ class Essentials implements Plugin{
 		"difficulty",
 		"defaultgamemode",
 		"help",
-		"time",
-		"list", // end
+		"list",
+		"time", // end
 		"login",
 		"logout",
 		"register",
@@ -75,8 +75,8 @@ class Essentials implements Plugin{
 		$this->api->addHandler("player.spawn", array($this, "initPlayer"), 5);
 		$this->api->addHandler("player.respawn", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.break", array($this, "handler"), 5);
-		$this->api->addHandler("console.command", array($this, "permissionsCheck"), 5);
-		$this->api->addHandler("groupmanager.permission.check", array($this, "permissionsCheck"), 5);
+		$this->api->addHandler("console.check", array($this, "permissionsCheck"), 5);
+		$this->api->addHandler("groupmanager.permission.check", array($this, "permissionsCheck"), 1);
 		
 		$this->api->console->register("home", "", array($this, "defaultCommands"));
 		$this->api->console->register("sethome", "", array($this, "defaultCommands"));
@@ -108,7 +108,7 @@ class Essentials implements Plugin{
 				"allow-non-loggedIn" => array(
 					"chat" => false,
 					"commands" => array(),
-					"move" => true,
+					"moving" => true,
 					"damage" => false,
 				),
 				"kick-on-wrong-password" => array(
@@ -147,19 +147,15 @@ class Essentials implements Plugin{
 	public function permissionsCheck($data, $event){
 		switch($event){
 			case "groupmanager.permission.check": // GroupManager
-				if($this->api->ban->isOp($data["issuer"]->username) or in_array(substr($data["permission"], 11), $this->config["player-commands"])){
+				if(in_array(substr($data["permission"], 11), $this->config["player-commands"])){
 					return true;
 				}
 				return false;
-			case "console.command":
-				//console("[INFO] \x1b[33m".$issuer->username."\x1b[0m issued command: /".$cmd." ".implode(" ", $params));
+			case "console.check":
 				if($this->groupmanager === true and !in_array($data["cmd"], self::$cmds)){
 					break;
 				}
-				if($this->isAuthorized($data["issuer"],  $data["cmd"])){
-					return;
-				}
-				return false;
+				return $this->isAuthorized($data["issuer"], $data["cmd"]);
 		}
 	}
 	
@@ -195,10 +191,10 @@ class Essentials implements Plugin{
 	}
 	
 	public function isAuthorized($issuer, $cmd, $permission = ""){
-		if(!($issuer instanceof Player)){
+		if($this->api->dhandle("groupmanager.permission.check", array("issuer" => $issuer, "permission" => "essentials.$cmd".($permission != "" ? ".$permission" : ""))) === true){
 			return true;
 		}
-		return $this->api->dhandle("groupmanager.permission.check", array("issuer" => $issuer, "permission" => "essentials.$cmd".($permission != "" ? ".$permission" : "")));
+		return false;
 	}
 	
 	public function handler(&$data, $event){

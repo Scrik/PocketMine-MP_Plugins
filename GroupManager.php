@@ -30,7 +30,7 @@ class GroupManager implements Plugin{
 		$this->api->addHandler("player.join", array($this, "handler"), 5);
 		$this->api->addHandler("player.block.touch", array($this, "handler"), 6);
 		$this->api->addHandler("essentials.player.chat", array($this, "handler"), 6);
-		$this->api->addHandler("groupmanager.permission.check", array($this, "permissionsCheck"), 6);
+		$this->api->addHandler("groupmanager.permission.check", array($this, "permissionsCheck"), 5);
 		
 		$this->api->console->register("manuadd", "<player> <group> [world]", array($this, "defaultCommands"));
 		$this->api->console->register("manudel", "<player> [world]", array($this, "defaultCommands"));

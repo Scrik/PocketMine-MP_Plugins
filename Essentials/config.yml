@@ -4,13 +4,13 @@ login:
     chat: false
     commands:
       - help
-      - list
       - login
       - logout
       - register
       - unregister
       - changepassword
-    move: false
+    moving: true
+    damage: false
   kick-on-wrong-password:
     enable: false
     count: 5
@@ -34,18 +34,16 @@ creative-item:
     - 1 10
   default: [ ]
 player-commands:
-  - help
   - tell
-  - list
   - tp
   - back
-  - logout
-  - changepassword
-  - unregister
   - clearinventory
-  - setspawnpoint
   - sethome
   - delhome
   - home
   - spawn
-  - gamemode
+  - login
+  - logout
+  - changepassword
+  - register
+  - unregister
